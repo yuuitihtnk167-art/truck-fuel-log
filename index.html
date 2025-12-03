@@ -112,10 +112,10 @@
       transition: background 0.2s;
       text-align: center;
     }
-    .btn-primary { background-color: #1e3a8a; color: white; }
+    .btn-primary { background-color: var(--primary-color); color: white; }
     .btn-primary:active { background-color: #1e40af; }
     .btn-danger {
-      background-color: #ef4444;
+      background-color: var(--danger-color);
       color: white;
       padding: 0.5rem 1rem;
       font-size: 0.9rem;
@@ -127,7 +127,7 @@
       margin-top: 1rem;
     }
     .btn-import {
-      background-color: #059669;
+      background-color: var(--import-color);
       color: white;
       margin-top: 0.5rem;
     }
@@ -138,8 +138,8 @@
     }
 
     #fuel-preview-card {
-      background-color: #dcfce7;
-      color: #166534;
+      background-color: var(--success-bg);
+      color: var(--success-text);
       padding: 1rem;
       border-radius: 8px;
       margin-bottom: 1.5rem;
@@ -162,12 +162,12 @@
     }
 
     .log-card {
-      background: #ffffff;
+      background: var(--card-bg);
       border-radius: 8px;
       padding: 1rem;
       margin-bottom: 1rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border-left: 5px solid #3b82f6;
+      border-left: 5px solid var(--secondary-color);
     }
     .log-header {
       display: flex;
@@ -178,7 +178,7 @@
       padding-bottom: 0.5rem;
     }
     .log-date { font-weight: bold; color: #374151; }
-    .log-km { font-size: 1.2rem; font-weight: bold; color: #1e3a8a; }
+    .log-km { font-size: 1.2rem; font-weight: bold; color: var(--primary-color); }
     .log-details {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -203,7 +203,7 @@
     }
 
     .summary-card {
-      background: #1e3a8a;
+      background: var(--primary-color);
       color: white;
       border-radius: 8px;
       padding: 1.5rem;
@@ -252,6 +252,7 @@
       gap: 1rem;
     }
 
+    /* スマホでの file input 対策: 画面外退避＋label クリックで開く */
     #csvFile {
       position: absolute;
       left: -9999px;
@@ -261,7 +262,7 @@
     }
 
     .btn-danger-wide {
-      background-color: #ef4444;
+      background-color: var(--danger-color);
       color: #fff;
       width: 100%;
       margin-top: 0.5rem;
@@ -286,6 +287,7 @@
     <button class="tab-btn" onclick="switchTab('summary')">月次集計</button>
   </div>
 
+  <!-- 入力画面 -->
   <div id="view-input" class="tab-content">
     <div id="fuel-preview-card">
       <div style="font-size:0.8rem;">今回の計算結果（プレビュー）</div>
@@ -333,6 +335,7 @@
     </div>
   </div>
 
+  <!-- 履歴画面 -->
   <div id="view-list" class="hidden tab-content">
     <button class="btn btn-toggle-import" onclick="toggleImportPanel()">
       📥 CSVインポート機能を開く
@@ -365,6 +368,7 @@
     </button>
   </div>
 
+  <!-- 集計画面 -->
   <div id="view-summary" class="hidden tab-content">
     <div class="form-group">
       <label>表示年月</label>
@@ -490,6 +494,7 @@
     store.getAll().onsuccess = e => {
       const raw = e.target.result || [];
 
+      // ここで「必ず数値化」＋「オドメーター昇順でソート」
       raw.forEach(log => {
         log.odometer = Number(log.odometer) || 0;
         log.fuelA = Number(log.fuelA) || 0;
@@ -497,6 +502,7 @@
       });
       raw.sort((a, b) => a.odometer - b.odometer);
 
+      // 距離・燃料・燃費を再計算（燃費 = 今回オド − 前回オド ÷ 今回給油量）
       const extended = [];
       let prev = null;
       raw.forEach(log => {
@@ -525,6 +531,7 @@
 
       allLogs = extended;
 
+      // 最後のオドメーター値（最大値）を取得
       lastOdometerValue = allLogs.length
         ? allLogs.reduce((max, l) => Math.max(max, l.odometer), 0)
         : 0;
@@ -651,8 +658,7 @@
 
   function parseAndImport(csvData) {
     if (!db) return;
-    const lines = csvData.trim().split('
-');
+    const lines = csvData.trim().split('\n');
     if (lines.length < 2) {
       showNotification('データ行がありません。');
       return;
@@ -765,6 +771,8 @@
     }[m]));
   }
 
+  // ====== グローバル関数（HTMLから呼び出す部分） ======
+
   function toggleImportPanel() {
     const panel = document.getElementById('import-panel');
     if (!panel) return;
@@ -852,11 +860,9 @@
       return;
     }
 
-    let csv = '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,メモ
-';
+    let csv = '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,メモ\n';
     allLogs.forEach(l => {
-      csv += `${l.date},${l.odometer},${l.isFirst ? 0 : l.distance},${l.fuelA},${l.fuelB},${l.totalFuel},${l.isFirst ? 0 : l.efficiency.toFixed(2)},"${(l.memo || '').replace(/"/g, '""')}"
-`;
+      csv += `${l.date},${l.odometer},${l.isFirst ? 0 : l.distance},${l.fuelA},${l.fuelB},${l.totalFuel},${l.isFirst ? 0 : l.efficiency.toFixed(2)},"${(l.memo || '').replace(/"/g, '""')}"\n`;
     });
 
     const blob = new Blob(
@@ -870,6 +876,7 @@
     a.click();
   }
 
+  // タブ切り替え（確実にグローバルに出す）
   function switchTab(t) {
     document.querySelectorAll('.tab-btn')
       .forEach(b => b.classList.remove('active'));
@@ -885,6 +892,7 @@
     if (t === 'summary') renderSummary();
   }
 
+  // グローバルに公開
   window.switchTab = switchTab;
   window.toggleImportPanel = toggleImportPanel;
   window.deleteLog = deleteLog;
