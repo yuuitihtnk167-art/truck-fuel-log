@@ -6,6 +6,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>燃費記録ランチャー</title>
   <meta name="theme-color" content="#1f2937">
+  <link rel="manifest" href="manifest.webmanifest">
   <style>
     :root {
       --bg: #0f172a;
@@ -149,5 +150,34 @@
 </div>
 
 <script>
-  // 最後に開いた方を表示
-  (function showLast
+  // 最後に開いたアプリの表示
+  (function showLastChoice() {
+    const el = document.getElementById('lastChoice');
+    const last = localStorage.getItem('fuelAppLastChoice');
+    if (!last) {
+      el.textContent = '前回の起動履歴はまだありません。';
+      return;
+    }
+    if (last === 'truck') {
+      el.textContent = '前回は「トラック燃費記録」を開きました。';
+    } else if (last === 'cub') {
+      el.textContent = '前回は「スーパーカブ燃費記録」を開きました。';
+    }
+  })();
+
+  function openApp(kind) {
+    let target = '';
+    if (kind === 'truck') {
+      target = 'truck.html';
+      localStorage.setItem('fuelAppLastChoice', 'truck');
+    } else if (kind === 'cub') {
+      target = 'cub.html';
+      localStorage.setItem('fuelAppLastChoice', 'cub');
+    } else {
+      return;
+    }
+    window.location.href = target;
+  }
+</script>
+</body>
+</html>
