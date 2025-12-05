@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fuel-app-cache-v1';
+const CACHE_NAME = 'fuel-app-cache-v2';
 const URLS_TO_CACHE = [
   './',
   './index.html',
@@ -17,17 +17,13 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME)
-          .map(k => caches.delete(k))
-      )
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
   );
 });
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(res => res || fetch(event.request))
   );
 });
