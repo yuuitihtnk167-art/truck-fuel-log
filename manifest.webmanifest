@@ -1,10 +1,10 @@
 {
-  "name": "トラック燃費記録",
-  "short_name": "燃費記録",
+  "name": "燃費記録ランチャー",
+  "short_name": "燃費ランチャー",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1e3a8a",
-  "theme_color": "#1e3a8a",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "lang": "ja-JP",
   "icons": []
 }
