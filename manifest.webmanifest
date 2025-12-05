@@ -1,9 +1,9 @@
 {
   "name": "燃費記録ランチャー",
-  "short_name": "燃費ランチャー",
+  "short_name": "燃費記録",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
+  "background_color": "#020617",
   "theme_color": "#0f172a",
   "lang": "ja-JP",
   "icons": []
