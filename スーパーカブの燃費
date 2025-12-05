@@ -8,7 +8,7 @@
     <meta name="description" content="スーパーカブ燃費管理アプリ">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛵</text></svg>">
-    
+
     <style>
         :root {
             --primary-color: #1e3a8a;
@@ -28,7 +28,8 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0; padding: 0; padding-bottom: 80px;
+            margin: 0;
+            padding: 0 0 80px 0;
             font-size: 16px;
         }
 
@@ -37,14 +38,16 @@
             color: white;
             padding: 1rem;
             text-align: center;
-            position: sticky; top: 0; z-index: 100;
+            position: sticky;
+            top: 0;
+            z-index: 100;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             justify-content: center;
             align-items: center;
         }
         header h1 { margin: 0; font-size: 1.25rem; }
-        
+
         #sound-toggle {
             position: absolute;
             right: 15px;
@@ -61,61 +64,111 @@
             text-decoration: line-through;
         }
 
-        .container { max-width: 600px; margin: 0 auto; padding: 1rem; }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
 
         .tabs {
-            display: flex; background: white; padding: 0.5rem;
-            border-radius: 8px; margin-bottom: 1rem;
+            display: flex;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .tab-btn {
-            flex: 1; padding: 0.75rem; border: none; background: none;
-            font-weight: bold; color: #6b7280; cursor: pointer;
-            border-bottom: 3px solid transparent; transition: all 0.2s;
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: none;
+            font-weight: bold;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
         }
-        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
 
         .form-group { margin-bottom: 1rem; }
-        label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #374151; }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #374151;
+        }
         input, textarea {
-            width: 100%; padding: 0.8rem; border: 1px solid #d1d5db;
-            border-radius: 6px; font-size: 1.1rem; background: white;
-            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            background: white;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
         }
         input[type="file"] {
-            padding: 0.5rem; border: 1px solid #d1d5db;
-            background: #f9fafb; font-size: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            font-size: 1rem;
         }
         input:focus, textarea:focus {
-            outline: none; border-color: var(--secondary-color);
+            outline: none;
+            border-color: var(--secondary-color);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
         .btn {
-            width: 100%; padding: 1rem; border: none; border-radius: 8px;
-            font-size: 1.1rem; font-weight: bold; cursor: pointer;
-            transition: background 0.2s; display: flex;
-            justify-content: center; align-items: center; gap: 0.5rem;
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
         }
         .btn-primary { background-color: var(--primary-color); color: white; }
         .btn-primary:active { background-color: #1e40af; }
         .btn-danger {
-            background-color: var(--danger-color); color: white;
-            padding: 0.5rem 1rem; font-size: 0.9rem; width: auto;
+            background-color: var(--danger-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            width: auto;
         }
         .btn-export { background-color: #10b981; color: white; margin-top: 1rem; }
         .btn-import { background-color: var(--import-color); color: white; margin-top: 0.5rem; }
         .btn-toggle-import { background-color: #6b7280; color: white; margin-bottom: 1rem; }
-        .btn-full-danger { background-color: var(--danger-color); color:white; width:100%; margin-top:0.75rem; }
+        .btn-full-danger { background-color: var(--danger-color); color: white; width: 100%; margin-top: 0.75rem; }
 
         #fuel-preview-card {
-            background-color: var(--success-bg); color: var(--success-text);
-            padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;
-            border: 1px solid #86efac; text-align: center;
-            display: none; animation: fadeIn 0.3s ease-in;
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #86efac;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.3s ease-in;
         }
         #fuel-preview-card.visible { display: block; }
-        .preview-value { font-size: 1.8rem; font-weight: bold; color: #14532d; }
+        .preview-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #14532d;
+        }
         .preview-sub { font-size: 0.9rem; opacity: 0.9; }
 
         @keyframes fadeIn {
@@ -124,53 +177,102 @@
         }
 
         .log-card {
-            background: var(--card-bg); border-radius: 8px; padding: 1rem;
-            margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border-left: 5px solid var(--secondary-color);
         }
         .log-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
             gap: 0.5rem;
         }
         .log-date { font-weight: bold; color: #374151; }
-        .log-actions {
-            display:flex; gap:0.5rem; align-items:center;
+        .log-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+        .log-km {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary-color);
         }
-        .log-km { font-size: 1.2rem; font-weight: bold; color: var(--primary-color); }
         .log-details {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
-            font-size: 0.95rem; color: #4b5563;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+            color: #4b5563;
         }
-        .log-stat-item span { display: block; font-size: 0.8rem; color: #6b7280; }
+        .log-stat-item span {
+            display: block;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
         .log-footer {
-            margin-top: 0.8rem; display: flex; justify-content: space-between; align-items: center;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+            background: #f9fafb;
+            padding: 5px;
         }
         .fuel-badge {
-            background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.6rem;
-            border-radius: 9999px; font-size: 0.85rem; font-weight: bold;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: bold;
         }
 
         .summary-card {
-            background: var(--primary-color); color: white; border-radius: 8px;
-            padding: 1.5rem; margin-bottom: 1rem; text-align: center;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
         }
-        .summary-main { font-size: 2.5rem; font-weight: bold; margin: 0.5rem 0; }
+        .summary-main {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
         .summary-sub { font-size: 1rem; opacity: 0.9; }
         .summary-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
         }
         .summary-box {
-            background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            padding: 1rem;
+            border-radius: 6px;
         }
+
         .import-section {
-            margin-top: 1rem; padding: 1rem; border: 2px dashed #ccc; border-radius: 8px; background: #fafafa;
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: #fafafa;
         }
 
         #notification {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 10px 20px;
-            border-radius: 20px; display: none; z-index: 1000;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            z-index: 1000;
             white-space: nowrap;
         }
 
@@ -196,7 +298,10 @@
         <div id="fuel-preview-card">
             <div style="font-size:0.8rem;">今回の計算結果（プレビュー）</div>
             <div class="preview-value" id="preview-efficiency">-</div>
-            <div class="preview-sub">走行: <span id="preview-distance">0</span> km / 給油: <span id="preview-fuel">0</span> L</div>
+            <div class="preview-sub">
+                走行: <span id="preview-distance">0</span> km /
+                給油: <span id="preview-fuel">0</span> L
+            </div>
         </div>
 
         <div class="log-card" style="border-left-color: var(--accent-color);">
@@ -207,7 +312,7 @@
                 </div>
                 <div class="form-group">
                     <label for="odometer">オドメーター (km)</label>
-                    <input type="number" id="odometer" placeholder="例: 12345" required inputmode="decimal">
+                    <input type="number" id="odometer" placeholder="例: 56061.8" required inputmode="decimal">
                     <small id="last-odometer-hint" style="color:#666; display:block; margin-top:4px;"></small>
                 </div>
                 <div class="form-group">
@@ -225,18 +330,24 @@
         </div>
     </div>
 
-    <!-- 一覧画面 -->
+    <!-- 履歴画面 -->
     <div id="view-list" class="hidden tab-content">
         <button class="btn btn-toggle-import" onclick="toggleImportPanel()">📥 CSVインポート機能を開く</button>
-        
+
         <div id="import-panel" class="import-section hidden">
-            <label style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--import-color);">🛵 CSVインポート (即実行)</label>
+            <label style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--import-color);">
+                🛵 CSVインポート (即実行)
+            </label>
             <input type="file" id="csvFile" accept=".csv">
             <button class="btn btn-import" onclick="importCSV()">📥 ファイルを選択して即インポート</button>
-            <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">※確認なしで実行するよ。慎重にな。</p>
+            <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
+                ※確認なしで実行するよ。慎重にな。
+            </p>
         </div>
 
-        <div id="logs-container"><p style="text-align:center; color:#888;">データを読み込み中...</p></div>
+        <div id="logs-container">
+            <p style="text-align:center; color:#888;">データを読み込み中...</p>
+        </div>
 
         <button class="btn btn-export" onclick="exportCSV()">📤 CSVエクスポート</button>
         <button class="btn btn-full-danger" onclick="deleteAllLogs()">🗑️ 全データ削除</button>
@@ -249,7 +360,9 @@
             <input type="month" id="summaryMonth" onchange="renderSummary()">
         </div>
         <div id="summary-content">
-            <p style="text-align:center; color:#888; padding:2rem;">年月を選んで集計してんな。</p>
+            <p style="text-align:center; color:#888; padding:2rem;">
+                年月を選んで集計してんな。
+            </p>
         </div>
     </div>
 </div>
@@ -260,6 +373,7 @@
     const DB_NAME = 'CubFuelDB';
     const DB_VERSION = 1;
     const STORE_NAME = 'logs';
+
     let db;
     let allLogs = [];
     let lastOdometerValue = 0;
@@ -274,18 +388,20 @@
         initDB();
         updateSoundButton();
 
-        ['odometer', 'fuel'].forEach(id =>
-            document.getElementById(id).addEventListener('input', calculatePreview)
-        );
-        
-        if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+        ['odometer', 'fuel'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calculatePreview);
+        });
+
+        if ('serviceWorker' in navigator &&
+            (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('SW Registered'))
                 .catch(err => console.log('SW Error:', err));
         }
     });
 
-    window.toggleSound = function() {
+    // サウンド
+    window.toggleSound = function () {
         isSoundOn = !isSoundOn;
         localStorage.setItem('cubAppSound', isSoundOn ? 'on' : 'off');
         updateSoundButton();
@@ -294,503 +410,4 @@
 
     function updateSoundButton() {
         const btn = document.getElementById('sound-toggle');
-        if (isSoundOn) {
-            btn.textContent = '🔊';
-            btn.classList.remove('muted');
-        } else {
-            btn.textContent = '🔇';
-            btn.classList.add('muted');
-        }
-    }
-
-    function playHorn() {
-        if (!isSoundOn) return;
-
-        if (!audioCtx) {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            audioCtx = new AudioContext();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-
-        const now = audioCtx.currentTime;
-        
-        const osc1 = audioCtx.createOscillator();
-        const osc2 = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc1.type = 'sawtooth';
-        osc1.frequency.setValueAtTime(392, now);
-        osc2.type = 'sawtooth';
-        osc2.frequency.setValueAtTime(493, now);
-
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-        osc1.connect(gain);
-        osc2.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc1.start(now);
-        osc2.start(now);
-        osc1.stop(now + 0.3);
-        osc2.stop(now + 0.3);
-    }
-
-    function initDB() {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                store.createIndex('date', 'date');
-                store.createIndex('odometer', 'odometer');
-            }
-        };
-        request.onsuccess = (e) => {
-            db = e.target.result;
-            loadLogs();
-        };
-        request.onerror = (e) => {
-            console.error("IndexedDBエラー:", e.target.errorCode);
-            showNotification('データベースが開けません！');
-        };
-    }
-
-    function addLog(data) {
-        if (!db) return;
-        if (data.odometer <= lastOdometerValue) {
-            showNotification(`不正じゃ！距離 ${data.odometer}km は前回 ${lastOdometerValue}km より大きくないといけん。`);
-            return;
-        }
-        
-        const tx = db.transaction([STORE_NAME], 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.add(data);
-        
-        tx.oncomplete = () => {
-            playHorn();
-            editingId = null;
-            resetForm();
-            loadLogs();
-            showNotification('記録しました！');
-        };
-        tx.onerror = (e) => {
-            console.error("記録エラー:", e.target.error);
-            showNotification('記録に失敗したで！');
-        };
-    }
-
-    function updateLog(id, data) {
-        if (!db) return;
-
-        // 前後のオドメーターとの整合性チェック
-        const sorted = [...allLogs].sort((a, b) => a.odometer - b.odometer);
-        const idx = sorted.findIndex(l => l.id === id);
-        const prev = idx > 0 ? sorted[idx - 1] : null;
-        const next = idx < sorted.length - 1 ? sorted[idx + 1] : null;
-
-        if (prev && data.odometer <= prev.odometer) {
-            showNotification(`不正じゃ！距離 ${data.odometer}km は前の記録 ${prev.odometer}km より大きくないといけん。`);
-            return;
-        }
-        if (next && data.odometer >= next.odometer) {
-            showNotification(`不正じゃ！距離 ${data.odometer}km は次の記録 ${next.odometer}km より小さくないといけん。`);
-            return;
-        }
-
-        const tx = db.transaction([STORE_NAME], 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        const getReq = store.get(id);
-
-        getReq.onsuccess = () => {
-            const old = getReq.result;
-            if (!old) {
-                showNotification('元データが見つからんかった。');
-                return;
-            }
-            const updated = { ...old, ...data, id };
-            store.put(updated);
-        };
-
-        tx.oncomplete = () => {
-            playHorn();
-            editingId = null;
-            resetForm();
-            loadLogs();
-            showNotification('更新したで！');
-        };
-        tx.onerror = (e) => {
-            console.error("更新エラー:", e.target.error);
-            showNotification('更新に失敗したで！');
-        };
-    }
-
-    window.deleteLog = function(id) {
-        if (!confirm('本当にこの記録を削除するんか？')) return;
-        const tx = db.transaction([STORE_NAME], 'readwrite');
-        tx.objectStore(STORE_NAME).delete(id);
-        tx.oncomplete = () => {
-            if (editingId === id) {
-                editingId = null;
-                resetForm();
-            }
-            loadLogs();
-            showNotification('削除したで！');
-        };
-    };
-
-    window.deleteAllLogs = function() {
-        if (!db) return;
-        if (!confirm('本当に全ての履歴を削除してもええん？この操作は元に戻せんよ。')) return;
-        const tx = db.transaction([STORE_NAME], 'readwrite');
-        tx.objectStore(STORE_NAME).clear();
-        tx.oncomplete = () => {
-            editingId = null;
-            allLogs = [];
-            lastOdometerValue = 0;
-            resetForm();
-            renderList();
-            renderSummary();
-            document.getElementById('last-odometer-hint').textContent = '記録はまだありません（初回）';
-            showNotification('全データを削除したで！');
-        };
-    };
-
-    function loadLogs() {
-        if (!db) return;
-        const tx = db.transaction([STORE_NAME], 'readonly');
-        tx.objectStore(STORE_NAME).getAll().onsuccess = (e) => {
-            const raw = e.target.result;
-            raw.sort((a, b) => a.odometer - b.odometer);
-            
-            allLogs = raw.map((log, index) => {
-                const prev = index > 0 ? raw[index - 1] : null;
-                const distance = prev ? (log.odometer - prev.odometer) : 0;
-                const fuel = ('fuel' in log) ? (parseFloat(log.fuel) || 0) : 0;
-                const eff = (fuel > 0 && distance > 0) ? (distance / fuel) : 0;
-                return { ...log, distance, totalFuel: fuel, efficiency: eff, isFirst: !prev };
-            });
-
-            if (allLogs.length > 0) {
-                lastOdometerValue = allLogs[allLogs.length - 1].odometer;
-                document.getElementById('last-odometer-hint').textContent =
-                    `前回: ${lastOdometerValue.toLocaleString()} km`;
-            } else {
-                lastOdometerValue = 0;
-                document.getElementById('last-odometer-hint').textContent =
-                    '記録はまだありません（初回）';
-            }
-            renderList();
-            renderSummary();
-            calculatePreview();
-        };
-    }
-
-    function calculatePreview() {
-        if (lastOdometerValue === 0 && allLogs.length === 0) {
-            document.getElementById('fuel-preview-card').classList.remove('visible');
-            return;
-        }
-        
-        const inputOdo = parseInt(document.getElementById('odometer').value, 10);
-        const inputFuel = parseFloat(document.getElementById('fuel').value) || 0;
-
-        if (!inputOdo || inputOdo <= lastOdometerValue || inputFuel <= 0) { 
-            document.getElementById('fuel-preview-card').classList.remove('visible'); 
-            return; 
-        }
-        
-        const dist = inputOdo - lastOdometerValue;
-        document.getElementById('preview-distance').textContent = dist.toLocaleString();
-        document.getElementById('preview-fuel').textContent = inputFuel.toFixed(2);
-        document.getElementById('preview-efficiency').textContent =
-            `${(dist / inputFuel).toFixed(2)} km/L`;
-        document.getElementById('fuel-preview-card').classList.add('visible');
-    }
-
-    function renderList() {
-        const container = document.getElementById('logs-container');
-        container.innerHTML = '';
-        if (allLogs.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:2rem;">まだデータがないようじゃ。</p>';
-            return;
-        }
-        
-        [...allLogs].reverse().forEach(log => {
-            const dateStr = new Date(log.date).toLocaleDateString('ja-JP');
-            const style = log.isAggregated ? 'border-left-color:#9333ea;' : '';
-            const note = log.isAggregated ? '⚠️ 合算あり' : '';
-            
-            container.insertAdjacentHTML('beforeend', `
-                <div class="log-card" style="${style}">
-                    <div class="log-header">
-                        <span class="log-date">${dateStr}</span>
-                        <div class="log-actions">
-                            <button class="btn btn-danger" style="padding:0.3rem 0.6rem;" onclick="startEditLog(${log.id})">
-                                編集
-                            </button>
-                            <button class="btn btn-danger" style="padding:0.3rem 0.6rem;" onclick="deleteLog(${log.id})">
-                                削除
-                            </button>
-                        </div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-                        <div>
-                            <span style="font-size:0.9rem; color:#666;">今回燃費</span><br>
-                            <span class="log-km">${log.isFirst ? '-' : log.efficiency.toFixed(2)}</span>
-                            <span style="font-size:0.9rem">km/L</span>
-                        </div>
-                        <div style="text-align:right;">
-                            <span style="font-size:0.9rem; color:#666;">走行距離</span><br>
-                            <span style="font-weight:bold;">
-                                ${log.isFirst ? '(初回)' : `+${log.distance.toLocaleString()} km`}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="log-details">
-                        <div class="log-stat-item">
-                            <span>オドメーター</span>${log.odometer.toLocaleString()} km
-                        </div>
-                        <div class="log-stat-item">
-                            <span>給油量</span>
-                            <span class="fuel-badge">${log.totalFuel.toFixed(2)} L</span>
-                        </div>
-                    </div>
-                    ${(log.memo || note)
-                        ? `<div class="log-footer" style="font-size:0.9rem; background:#f9fafb; padding:5px;">
-                               ${note} ${escapeHtml(log.memo)}
-                           </div>`
-                        : ''
-                    }
-                </div>`);
-        });
-    }
-
-    window.startEditLog = function(id) {
-        const log = allLogs.find(l => l.id === id);
-        if (!log) return;
-        editingId = id;
-
-        document.getElementById('date').value = log.date;
-        document.getElementById('odometer').value = log.odometer;
-        document.getElementById('fuel').value = ('fuel' in log) ? log.fuel : log.totalFuel;
-        document.getElementById('memo').value = log.memo || '';
-
-        const btn = document.getElementById('submitButton');
-        btn.textContent = '✏️ 記録を更新する';
-
-        switchTab('input');
-        calculatePreview();
-    };
-
-    window.renderSummary = function() {
-        const target = document.getElementById('summaryMonth').value;
-        const container = document.getElementById('summary-content');
-        if (!target) return;
-        const monthly = allLogs.filter(l => l.date && l.date.startsWith(target));
-        if (monthly.length === 0) {
-            container.innerHTML = '<p style="text-align:center; padding:2rem;">データなし</p>';
-            return;
-        }
-        
-        let dist = 0, fuel = 0, count = 0;
-        monthly.forEach(l => {
-            if (l.isFirst) return;
-            dist += l.distance;
-            fuel += l.totalFuel;
-            count++;
-        });
-        const avg = (fuel > 0 && dist > 0) ? (dist / fuel).toFixed(2) : '-';
-        container.innerHTML = `
-            <div class="summary-card">
-                <div>月平均燃費</div>
-                <div class="summary-main">${avg} <span style="font-size:1rem">km/L</span></div>
-                <div class="summary-sub">${target}</div>
-                <div class="summary-grid">
-                    <div class="summary-box">
-                        <div>総走行距離</div>
-                        <div style="font-weight:bold; font-size:1.2rem">
-                            ${dist.toLocaleString()} km
-                        </div>
-                    </div>
-                    <div class="summary-box">
-                        <div>計算対象給油量</div>
-                        <div style="font-weight:bold; font-size:1.2rem">
-                            ${fuel.toFixed(2)} L
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-    };
-
-    document.getElementById('fuelForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const data = {
-            date: document.getElementById('date').value,
-            odometer: parseFloat(document.getElementById('odometer').value),
-            fuel: parseFloat(document.getElementById('fuel').value) || 0,
-            memo: document.getElementById('memo').value,
-            timestamp: new Date().getTime()
-        };
-        if (!data.date || !isFinite(data.odometer) || data.odometer <= 0 || data.fuel <= 0) {
-            showNotification('日付・オド・給油量を確認してな。');
-            return;
-        }
-
-        if (editingId) {
-            updateLog(editingId, data);
-        } else {
-            addLog(data);
-        }
-    });
-
-    function resetForm() {
-        document.getElementById('fuelForm').reset();
-        document.getElementById('date').valueAsDate = new Date();
-        document.getElementById('fuel-preview-card').classList.remove('visible');
-        const btn = document.getElementById('submitButton');
-        btn.textContent = '💾 記録を追加する';
-    }
-
-    function toHalfWidth(str) {
-        return str.replace(/[０-９]/g, s =>
-            String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
-        );
-    }
-
-    window.toggleImportPanel = function() {
-        const panel = document.getElementById('import-panel');
-        panel.classList.toggle('hidden');
-    };
-
-    window.importCSV = function() {
-        const file = document.getElementById('csvFile').files[0];
-        if (!file) {
-            showNotification('ファイルを選んでな！');
-            return;
-        }
-        showNotification('インポート開始じゃ！');
-        const reader = new FileReader();
-        reader.onload = e => parseAndImport(e.target.result);
-        reader.readAsText(file, 'UTF-8');
-    };
-
-    function parseAndImport(csvData) {
-        if (!db) return;
-
-        const lines = csvData.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
-        if (lines.length === 0) {
-            showNotification('データが入ってないで！');
-            return;
-        }
-
-        const toImport = [];
-        const existingOdometers = new Set(allLogs.map(l => l.odometer));
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (!line) continue;
-
-            const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-
-            const first = cols[0] || '';
-            if (!/^\d{4}[/-]\d{2}[/-]\d{2}$/.test(first)) {
-                continue;
-            }
-
-            let dateStr = first.replace(/\//g, '-');
-
-            let odoRaw = cols[1] || '';
-            odoRaw = toHalfWidth(odoRaw);
-            odoRaw = odoRaw.replace(/,/g, '');
-            const odo = parseFloat(odoRaw);
-
-            let fuelRaw = cols[2] || '';
-            fuelRaw = toHalfWidth(fuelRaw);
-            const fuel = parseFloat(fuelRaw);
-
-            if (!isFinite(odo) || odo <= 0) continue;
-            if (!isFinite(fuel) || fuel <= 0) continue;
-
-            if (existingOdometers.has(odo)) continue;
-
-            toImport.push({
-                date: dateStr,
-                odometer: odo,
-                fuel: fuel,
-                memo: `スプレッドシートから (行${i + 1})`,
-                timestamp: new Date(dateStr).getTime(),
-                isAggregated: false
-            });
-        }
-
-        if (toImport.length === 0) {
-            showNotification('取り込める新規データがなかったで。');
-            return;
-        }
-
-        const tx = db.transaction([STORE_NAME], 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        toImport.forEach(log => store.add(log));
-
-        tx.oncomplete = () => {
-            loadLogs();
-            showNotification(`${toImport.length}件 インポート完了！`);
-            const fileInput = document.getElementById('csvFile');
-            if (fileInput) fileInput.value = '';
-            const panel = document.getElementById('import-panel');
-            if (panel) panel.classList.add('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-    }
-
-    window.switchTab = (t) => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector(`.tab-btn[onclick*="${t}"]`).classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(d => d.classList.add('hidden')); 
-        document.getElementById(`view-${t}`).classList.remove('hidden');
-        if (t === 'list') renderList();
-        if (t === 'summary') renderSummary();
-    };
-
-    window.exportCSV = () => {
-        if (allLogs.length === 0) {
-            showNotification('データなし');
-            return;
-        }
-        let csv = '日付,積算距離,燃料,走行距離,合計燃料,燃費,メモ\n';
-        allLogs.forEach(l => {
-            const baseFuel = ('fuel' in l) ? l.fuel : l.totalFuel;
-            csv += `${l.date},${l.odometer},${baseFuel},${l.isFirst ? 0 : l.distance},${l.totalFuel},${l.isFirst ? 0 : l.efficiency.toFixed(2)},"${l.memo || ''}"\n`;
-        });
-        const blob = new Blob([new Uint8Array([0xEF,0xBB,0xBF]), csv], {type:'text/csv'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'cub_log.csv';
-        a.click();
-    };
-
-    function showNotification(m) {
-        const e = document.getElementById('notification');
-        e.textContent = m;
-        e.style.display = 'block';
-        setTimeout(() => e.style.display = 'none', 5000);
-    }
-
-    function escapeHtml(s) {
-        if (!s) return '';
-        return s.replace(/[&<>"']/g, m => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        }[m]));
-    }
-</script>
-</body>
-</html>
+        i
