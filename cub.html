@@ -363,8 +363,8 @@
             <div style="font-size:0.8rem;">今回の燃費プレビュー</div>
             <div class="preview-value" id="preview-efficiency">-</div>
             <div class="preview-sub">
-                走行: <span id="preview-distance">0</span> km / 給油:
-                <span id="preview-fuel">0</span> L
+                走行: <span id="preview-distance">0.0</span> km / 給油:
+                <span id="preview-fuel">0.0</span> L
             </div>
         </div>
 
@@ -377,14 +377,14 @@
                 </div>
                 <div class="form-group">
                     <label for="odometer">積算距離 (km)</label>
-                    <input type="number" id="odometer" step="0.01" required
+                    <input type="number" id="odometer" step="0.1" required
                            placeholder="例: 56061.8" inputmode="decimal">
                     <small id="last-odometer-hint"
                            style="color:#666; display:block; margin-top:4px;"></small>
                 </div>
                 <div class="form-group">
                     <label for="fuel">今回給油量 (L)</label>
-                    <input type="number" id="fuel" step="0.01" placeholder="例: 3.67"
+                    <input type="number" id="fuel" step="0.1" placeholder="例: 3.7"
                            inputmode="decimal">
                 </div>
                 <div class="form-group">
@@ -424,8 +424,8 @@
                 📥 ファイルを選択して即インポート
             </button>
             <p style="font-size:0.8rem; color:#666; margin-top:0.5rem;">
-                ※Excelの「スーパーカブの燃費 - シート1.csv」をそのまま指定してね。
-                給油量は「燃料」列（3列目）をそのまま使うようにしてあるよ。
+                ※Excelの「スーパーカブの燃費 - シート1.csv」をそのまま指定してね。<br>
+                日付順に並べ直して、給油量は「燃料」列（3列目）そのまま使うようになっとるよ。
             </p>
         </div>
 
@@ -465,6 +465,22 @@
     let isSoundOn = localStorage.getItem('cubAppSound') !== 'off';
     let audioCtx = null;
 
+    // 小数1桁に丸めるユーティリティ
+    function round1(x) {
+        if (!isFinite(x)) return 0;
+        return Math.round(x * 10) / 10;
+    }
+
+    // 並び順用：日付 → 同日の中でオドメーター
+    function compareByDateOdo(a, b) {
+        const da = a.date || '';
+        const db = b.date || '';
+        if (da === db) {
+            return (a.odometer || 0) - (b.odometer || 0);
+        }
+        return da.localeCompare(db);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('date').valueAsDate = new Date();
         document.getElementById('summaryMonth').value =
@@ -473,7 +489,7 @@
         initDB();
         updateSoundButton();
 
-        ['odometer', 'fuel'].forEach(id => {
+        ['odometer', 'fuel', 'date'].forEach(id => {
             document.getElementById(id).addEventListener('input', calculatePreview);
         });
 
@@ -522,7 +538,7 @@
         const osc2 = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
 
-        // 少し軽めの「プップッ」っぽい音
+        // 軽めの「プップッ」音
         osc1.type = 'square';
         osc1.frequency.setValueAtTime(440, now);   // A4
         osc2.type = 'square';
@@ -569,16 +585,6 @@
     // ===== CRUD =====
     function addLog(data) {
         if (!db) return;
-
-        // 距離チェック（編集時はスキップするのでここでは「新規追加」のみ）
-        if (!data.isEdit) {
-            if (lastOdometerValue > 0 && data.odometer <= lastOdometerValue) {
-                showNotification(
-                    `不正じゃ！距離 ${data.odometer}km は前回 ${lastOdometerValue}km より大きくないといけんよ。`
-                );
-                return;
-            }
-        }
 
         const tx = db.transaction([STORE_NAME], 'readwrite');
         const store = tx.objectStore(STORE_NAME);
@@ -655,9 +661,7 @@
         btnLabel.textContent = '✏ 記録を更新する';
         document.getElementById('cancelEditBtn').style.display = 'inline-flex';
 
-        // プレビュー更新
         calculatePreview();
-        // 入力タブへ
         switchTab('input');
     }
 
@@ -675,36 +679,37 @@
         document.getElementById('fuel-preview-card').classList.remove('visible');
     }
 
-    // ===== ログ読み込み・描画 =====
+    // ===== ログ読み込み・距離計算 =====
     function loadLogs() {
         if (!db) return;
         const tx = db.transaction([STORE_NAME], 'readonly');
         const store = tx.objectStore(STORE_NAME);
 
         store.getAll().onsuccess = e => {
-            const raw = e.target.result || [];
+            const raw = (e.target.result || []).slice();
 
-            // 積算距離で昇順ソート
-            raw.sort((a, b) => a.odometer - b.odometer);
+            // 日付 → オドメーターでソート
+            raw.sort(compareByDateOdo);
 
             allLogs = raw.map((log, index) => {
                 const prev = index > 0 ? raw[index - 1] : null;
-                const distance = prev ? (log.odometer - prev.odometer) : 0;
+                const distance = prev ? round1(log.odometer - prev.odometer) : 0;
                 const eff = (!prev || !log.fuel || distance <= 0)
                     ? 0
                     : (distance / log.fuel);
                 return {
                     ...log,
-                    distance,
+                    distance: distance,
                     efficiency: eff,
                     isFirst: !prev
                 };
             });
 
             if (allLogs.length > 0) {
-                lastOdometerValue = allLogs[allLogs.length - 1].odometer;
+                const last = allLogs[allLogs.length - 1];
+                lastOdometerValue = last.odometer;
                 document.getElementById('last-odometer-hint').textContent =
-                    `前回: ${lastOdometerValue.toLocaleString()} km`;
+                    `最新記録: ${last.odometer.toFixed(1)} km (${last.date})`;
             } else {
                 lastOdometerValue = 0;
                 document.getElementById('last-odometer-hint').textContent =
@@ -727,8 +732,13 @@
             return;
         }
 
-        // 新しい順で表示（積算距離降順）
-        [...allLogs].sort((a, b) => b.odometer - a.odometer).forEach(log => {
+        // 表示は新しい日付が上に来るように逆順
+        const sorted = allLogs.slice().sort((a, b) => {
+            const cmp = compareByDateOdo(a, b);
+            return -cmp; // 逆順
+        });
+
+        sorted.forEach(log => {
             const dateStr = new Date(log.date).toLocaleDateString('ja-JP');
 
             container.insertAdjacentHTML('beforeend', `
@@ -748,7 +758,7 @@
                         <span class="log-km">
                             ${log.isFirst || !log.fuel || log.distance <= 0
                                 ? '-'
-                                : log.efficiency.toFixed(2)
+                                : (log.efficiency).toFixed(2)
                             }
                         </span>
                         <span style="font-size:0.9rem;"> km/L</span>
@@ -763,12 +773,12 @@
                 <div class="log-details">
                     <div class="log-stat-item">
                         <span>積算距離</span>
-                        ${log.odometer.toLocaleString()} km
+                        ${log.odometer.toFixed(1)} km
                     </div>
                     <div class="log-stat-item">
                         <span>給油量</span>
                         <span class="fuel-badge">
-                            ${log.fuel ? log.fuel.toFixed(2) : '0.00'} L
+                            ${(log.fuel || 0).toFixed(1)} L
                         </span>
                     </div>
                 </div>
@@ -780,36 +790,48 @@
         });
     }
 
-    // ===== プレビュー計算 =====
+    // ===== プレビュー計算（その日付の直前レコード基準） =====
     function calculatePreview() {
-        if (lastOdometerValue === 0 && allLogs.length === 0) {
+        const date = document.getElementById('date').value;
+        const odoVal = parseFloat(document.getElementById('odometer').value);
+        const fuelVal = parseFloat(document.getElementById('fuel').value || '0');
+
+        if (!date || !odoVal || fuelVal <= 0) {
             document.getElementById('fuel-preview-card').classList.remove('visible');
             return;
         }
 
-        const odometerInput = parseFloat(document.getElementById('odometer').value);
-        const fuelInput = parseFloat(document.getElementById('fuel').value || '0');
+        const odometer = round1(odoVal);
+        const fuel = round1(fuelVal);
 
-        if (!odometerInput || fuelInput <= 0) {
+        // 既存ログ＋仮の入力レコードを日付順に並べ、その直前を探す
+        const temp = allLogs.map(l => ({
+            date: l.date,
+            odometer: l.odometer
+        }));
+        const virtual = { date, odometer, __virtual: true };
+        temp.push(virtual);
+
+        temp.sort(compareByDateOdo);
+
+        const idx = temp.findIndex(l => l.__virtual);
+        if (idx <= 0) {
             document.getElementById('fuel-preview-card').classList.remove('visible');
             return;
         }
 
-        // 編集中の場合は「直前のレコード」を厳密に取るのがベストだが、
-        // ここは簡易的に「現在の最後の積算距離との差」でプレビュー。
-        const dist = (lastOdometerValue > 0 && odometerInput > lastOdometerValue)
-            ? (odometerInput - lastOdometerValue)
-            : 0;
+        const prev = temp[idx - 1];
+        const dist = round1(odometer - prev.odometer);
 
         if (dist <= 0) {
             document.getElementById('fuel-preview-card').classList.remove('visible');
             return;
         }
 
-        const eff = dist / fuelInput;
+        const eff = dist / fuel;
 
         document.getElementById('preview-distance').textContent = dist.toFixed(1);
-        document.getElementById('preview-fuel').textContent = fuelInput.toFixed(2);
+        document.getElementById('preview-fuel').textContent = fuel.toFixed(1);
         document.getElementById('preview-efficiency').textContent =
             `${eff.toFixed(2)} km/L`;
         document.getElementById('fuel-preview-card').classList.add('visible');
@@ -831,14 +853,12 @@
 
         let dist = 0;
         let fuel = 0;
-        let count = 0;
 
         monthly.forEach(l => {
             if (l.isFirst) return;
             if (l.distance > 0 && l.fuel > 0) {
                 dist += l.distance;
                 fuel += l.fuel;
-                count++;
             }
         });
 
@@ -863,7 +883,7 @@
                 <div class="summary-box">
                     <div>総給油量</div>
                     <div style="font-weight:bold; font-size:1.2rem;">
-                        ${fuel.toFixed(2)} L
+                        ${fuel.toFixed(1)} L
                     </div>
                 </div>
             </div>
@@ -879,14 +899,17 @@
         const id = isEdit ? Number(idStr) : null;
 
         const date = document.getElementById('date').value;
-        const odometer = parseFloat(document.getElementById('odometer').value);
-        const fuel = parseFloat(document.getElementById('fuel').value || '0');
+        const odoVal = parseFloat(document.getElementById('odometer').value);
+        const fuelVal = parseFloat(document.getElementById('fuel').value || '0');
         const memo = document.getElementById('memo').value;
 
-        if (!date || !odometer || odometer <= 0) {
+        if (!date || !odoVal || odoVal <= 0) {
             showNotification('日付と積算距離は必須だよ。');
             return;
         }
+
+        const odometer = round1(odoVal);
+        const fuel = round1(fuelVal);
 
         addLog({
             id,
@@ -902,13 +925,10 @@
     function toHalfWidth(str) {
         return str.replace(/[０-９．，]/g, s => {
             const code = s.charCodeAt(0);
-            // 全角数字
             if (code >= 0xFF10 && code <= 0xFF19) {
                 return String.fromCharCode(code - 0xFEE0);
             }
-            // 全角カンマ → 半角
             if (s === '，') return ',';
-            // 全角ピリオド → 半角
             if (s === '．') return '.';
             return s;
         });
@@ -946,8 +966,7 @@
 
         const existingOdometers = new Set(allLogs.map(l => Number(l.odometer)));
 
-        const toImport = [];
-        let skipped = 0;
+        const imported = [];
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -959,7 +978,7 @@
 
             const rawDate = cols[0];
 
-            // 「カブの燃費」行や「日付,走行距離,燃料,燃費」などをスキップ
+            // 「カブの燃費」行やヘッダー行など数字を含まない日付はスキップ
             if (!/\d/.test(rawDate)) continue;
             if (!/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(rawDate)) continue;
 
@@ -977,12 +996,15 @@
                 continue;
             }
 
+            odo = round1(odo);
+            fuel = round1(fuel);
+
+            // 同じ積算距離は重複とみなしてスキップ
             if (existingOdometers.has(odo)) {
-                skipped++;
                 continue;
             }
 
-            toImport.push({
+            imported.push({
                 date: dateStr,
                 odometer: odo,
                 fuel,
@@ -991,18 +1013,18 @@
             });
         }
 
-        if (toImport.length === 0) {
-            showNotification(`新しく追加できるデータはなかったみたい（重複 ${skipped}件）。`);
+        if (imported.length === 0) {
+            showNotification('新しく追加できるデータはなかったみたい。');
             return;
         }
 
         const tx = db.transaction([STORE_NAME], 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        toImport.forEach(log => store.add(log));
+        imported.forEach(log => store.add(log));
 
         tx.oncomplete = () => {
             loadLogs();
-            showNotification(`${toImport.length}件インポートしたよ！（重複スキップ ${skipped}件）`);
+            showNotification(`${imported.length}件インポートしたよ！`);
             document.getElementById('csvFile').value = '';
             document.getElementById('import-panel').classList.add('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1034,8 +1056,10 @@
 
         let csv = '日付,積算距離,走行距離,給油量,燃費,メモ\n';
         allLogs.forEach(l => {
-            csv += `${l.date},${l.odometer},${l.isFirst ? 0 : l.distance.toFixed(1)},` +
-                   `${l.fuel || 0},${l.isFirst ? 0 : l.efficiency.toFixed(2)},` +
+            csv += `${l.date},${l.odometer.toFixed(1)},` +
+                   `${l.isFirst ? 0 : l.distance.toFixed(1)},` +
+                   `${(l.fuel || 0).toFixed(1)},` +
+                   `${l.isFirst ? 0 : l.efficiency.toFixed(2)},` +
                    `"${(l.memo || '').replace(/"/g, '""')}"\n`;
         });
 
