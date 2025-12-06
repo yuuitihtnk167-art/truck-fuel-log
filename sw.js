@@ -1,10 +1,11 @@
 const CACHE_NAME = 'fuel-app-cache-v3';
 const URLS_TO_CACHE = [
   './',
-  './index.html',          // トラック用
-  './cub.html',            // カブ用
-  './manifest.webmanifest',// トラック用マニフェスト
-  './cub.webmanifest'      // カブ用マニフェスト
+  './index.html',           // トラック用ランチャー or メイン
+  './truck.html',           // トラック燃費
+  './cub.html',             // カブ燃費
+  './manifest.webmanifest', // 既存ランチャー
+  './cub-manifest.webmanifest'
 ];
 
 self.addEventListener('install', event => {
@@ -18,7 +19,9 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
       )
     )
   );
