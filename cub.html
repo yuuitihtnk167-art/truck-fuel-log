@@ -2,10 +2,12 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>スーパーカブ燃費記録</title>
   <meta name="theme-color" content="#0f766e">
   <meta name="description" content="スーパーカブ燃費管理アプリ">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛵</text></svg>">
   <style>
     :root {
@@ -22,7 +24,8 @@
     }
     * { box-sizing: border-box; touch-action: manipulation; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
@@ -98,7 +101,7 @@
     input, textarea {
       width: 100%;
       padding: 0.7rem;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #cbd5f5;
       border-radius: 6px;
       font-size: 1rem;
       background: #fff;
@@ -296,7 +299,7 @@
       margin-top: 0.5rem;
       padding: 0.7rem;
       border-radius: 8px;
-      border: 2px dashed #cbd5e1;
+      border: 2px dashed #cbd5f5;
       background: #f8fafc;
       font-size: 0.8rem;
     }
@@ -332,6 +335,7 @@
     <button class="tab-btn" onclick="switchTab('summary')">月次集計</button>
   </div>
 
+  <!-- 入力 -->
   <div id="view-input" class="tab-content">
     <div id="fuel-preview-card">
       <div>今回の計算結果（プレビュー）</div>
@@ -350,17 +354,23 @@
         </div>
         <div class="form-group">
           <label for="odometer">オドメーター (km)</label>
-          <input type="number" id="odometer" placeholder="例: 56061.8" step="0.1" inputmode="decimal" required>
+          <input type="number" id="odometer"
+                 placeholder="例: 56061.8" step="0.1" inputmode="decimal" required>
           <small id="last-odometer-hint" class="hint"></small>
         </div>
         <div class="form-group">
           <label for="fuel">給油量 (L)</label>
-          <input type="number" id="fuel" step="0.01" inputmode="decimal" placeholder="例: 3.65">
-          <small class="hint">小数第2位まで入力可（例: 3.65）</small>
+          <!-- テキスト入力＋内部で数値化（小数第2位まで） -->
+          <input type="text" id="fuel"
+                 inputmode="decimal"
+                 pattern="^[0-9０-９.,．]*$"
+                 placeholder="例: 3.65">
+          <small class="hint">小数第2位まで入力可（例: 3.65 / ３．６５）</small>
         </div>
         <div class="form-group">
           <label for="memo">メモ</label>
-          <textarea id="memo" rows="2" placeholder="給油場所や走行条件など"></textarea>
+          <textarea id="memo" rows="2"
+                    placeholder="給油場所や走行条件など"></textarea>
         </div>
         <button type="submit" class="btn btn-main" id="submitButton">
           💾 記録を追加する
@@ -369,6 +379,7 @@
     </div>
   </div>
 
+  <!-- 履歴 -->
   <div id="view-list" class="hidden tab-content">
     <button class="btn btn-toggle-import" onclick="toggleImportPanel()">
       📥 CSVインポート機能を開く
@@ -398,6 +409,7 @@
     </button>
   </div>
 
+  <!-- 集計 -->
   <div id="view-summary" class="hidden tab-content">
     <div class="form-group">
       <label for="summaryMonth">表示年月</label>
@@ -420,12 +432,14 @@
   let db;
   let allLogs = [];
   let editingId = null;
+
   let isSoundOn = localStorage.getItem('cubAppSound') !== 'off';
   let audioCtx = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
-    document.getElementById('summaryMonth').value = new Date().toISOString().slice(0, 7);
+    document.getElementById('summaryMonth').value =
+      new Date().toISOString().slice(0, 7);
     initDB();
     updateSoundButton();
 
@@ -433,7 +447,13 @@
       document.getElementById(id).addEventListener('input', updatePreview);
     });
 
-    document.getElementById('fuelForm').addEventListener('submit', handleSubmit);
+    document.getElementById('fuelForm')
+      .addEventListener('submit', handleSubmit);
+
+    if ('serviceWorker' in navigator &&
+        (location.protocol === 'http:' || location.protocol === 'https:')) {
+      navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
   });
 
   function toggleSound() {
@@ -442,7 +462,6 @@
     updateSoundButton();
     if (isSoundOn) playHorn();
   }
-
   function updateSoundButton() {
     const btn = document.getElementById('sound-toggle');
     if (isSoundOn) {
@@ -453,7 +472,6 @@
       btn.classList.add('muted');
     }
   }
-
   function playHorn() {
     if (!isSoundOn) return;
     if (!audioCtx) {
@@ -480,7 +498,8 @@
     req.onupgradeneeded = e => {
       db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        const store = db.createObjectStore(STORE_NAME,
+                          { keyPath: 'id', autoIncrement: true });
         store.createIndex('date', 'date');
       }
     };
@@ -494,8 +513,10 @@
   function handleSubmit(e) {
     e.preventDefault();
     const fuelVal = document.getElementById('fuel').value;
-    const fuelNum = parseFloat(fuelVal);
-    const odoNum = parseFloat(document.getElementById('odometer').value);
+    const fuelNum = parseFuelInput(fuelVal);
+    const odoNum = parseFloat(
+      toHalfWidth(document.getElementById('odometer').value)
+    );
 
     if (!document.getElementById('date').value || isNaN(odoNum)) {
       showNotification('日付とオドメーターは必須です。');
@@ -582,9 +603,12 @@
           if (d > 0) distance = d;
           else isFirst = true;
         }
-        const f = typeof log.fuel === 'number' ? log.fuel : 0;
+        const f = typeof log.fuel === 'number'
+          ? Math.round(log.fuel * 100) / 100
+          : 0;
         const totalFuel = f;
-        const efficiency = distance > 0 && totalFuel > 0 ? distance / totalFuel : 0;
+        const efficiency =
+          distance > 0 && totalFuel > 0 ? distance / totalFuel : 0;
         const enriched = {
           ...log,
           fuel: f,
@@ -602,7 +626,8 @@
         document.getElementById('last-odometer-hint').textContent =
           `最新の記録: ${last.date} / ${formatNumber(last.odometer)} km`;
       } else {
-        document.getElementById('last-odometer-hint').textContent = 'まだ記録がありません。';
+        document.getElementById('last-odometer-hint').textContent =
+          'まだ記録がありません。';
       }
 
       renderList();
@@ -617,8 +642,11 @@
       card.classList.remove('visible');
       return;
     }
-    const odo = parseFloat(document.getElementById('odometer').value);
-    const fuel = parseFloat(document.getElementById('fuel').value);
+    const odo = parseFloat(
+      toHalfWidth(document.getElementById('odometer').value)
+    );
+    const fuelVal = document.getElementById('fuel').value;
+    const fuel = parseFuelInput(fuelVal);
 
     if (!odo || isNaN(fuel) || fuel <= 0) {
       card.classList.remove('visible');
@@ -646,9 +674,12 @@
       card.classList.remove('visible');
       return;
     }
-    document.getElementById('preview-distance').textContent = formatNumber(dist);
-    document.getElementById('preview-fuel').textContent = fuel.toFixed(2);
-    document.getElementById('preview-efficiency').textContent = (dist / fuel).toFixed(2) + ' km/L';
+    document.getElementById('preview-distance').textContent =
+      formatNumber(dist);
+    document.getElementById('preview-fuel').textContent =
+      fuel.toFixed(2);
+    document.getElementById('preview-efficiency').textContent =
+      (dist / fuel).toFixed(2) + ' km/L';
     card.classList.add('visible');
   }
 
@@ -656,22 +687,32 @@
     const container = document.getElementById('logs-container');
     container.innerHTML = '';
     if (allLogs.length === 0) {
-      container.innerHTML = '<p style="text-align:center; padding:2rem 0; color:#888;">まだデータがありません。</p>';
+      container.innerHTML =
+        '<p style="text-align:center; padding:2rem 0; color:#888;">まだデータがありません。</p>';
       return;
     }
     [...allLogs].slice().reverse().forEach(log => {
       const dateStr = log.date || '';
       const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(2) : '-';
-      const effText = log.isFirst || log.efficiency <= 0 ? '-' : log.efficiency.toFixed(2);
-      const distText = log.isFirst || log.distance <= 0 ? '(初回)' : '+' + formatNumber(log.distance) + ' km';
-      const memoText = (log.memo || '').trim();
+      const effText = log.isFirst || log.efficiency <= 0
+        ? '-'
+        : log.efficiency.toFixed(2);
+      const distText = log.isFirst || log.distance <= 0
+        ? '(初回)'
+        : '+' + formatNumber(log.distance) + ' km';
+      const memoText = [log.isAggregated ? '⚠️ 合算あり' : '', log.memo || '']
+        .join(' ').trim();
       container.insertAdjacentHTML('beforeend', `
         <div class="log-card">
           <div class="log-header">
             <span class="log-date">${escapeHtml(dateStr)}</span>
             <div class="log-actions">
-              <button class="btn btn-small" onclick="editLog(${log.id})">編集</button>
-              <button class="btn btn-danger" onclick="deleteLog(${log.id})">削除</button>
+              <button class="btn btn-small" onclick="editLog(${log.id})">
+                編集
+              </button>
+              <button class="btn btn-danger" onclick="deleteLog(${log.id})">
+                削除
+              </button>
             </div>
           </div>
           <div class="log-main-row">
@@ -708,7 +749,10 @@
     document.getElementById('date').value = log.date;
     document.getElementById('odometer').value = log.odometer;
     const f = log.fuel ?? log.totalFuel;
-    document.getElementById('fuel').value = typeof f === 'number' && !isNaN(f) && f > 0 ? f : '';
+    document.getElementById('fuel').value =
+      typeof f === 'number' && !isNaN(f) && f > 0
+        ? (Math.round(f * 100) / 100).toFixed(2)
+        : '';
     document.getElementById('memo').value = log.memo || '';
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
@@ -745,7 +789,8 @@
     if (!month) return;
     const monthly = allLogs.filter(l => (l.date || '').startsWith(month));
     if (monthly.length === 0) {
-      container.innerHTML = '<p style="text-align:center; padding:2rem 0; color:#888;">データなし</p>';
+      container.innerHTML =
+        '<p style="text-align:center; padding:2rem 0; color:#888;">データなし</p>';
       return;
     }
     let dist = 0;
@@ -759,4 +804,189 @@
     const avg = dist > 0 && fuel > 0 ? (dist / fuel).toFixed(2) : '-';
     container.innerHTML = `
       <div class="summary-card">
-        <div>月
+        <div>月平均燃費</div>
+        <div class="summary-main">
+          ${avg} <span style="font-size:0.9rem;">km/L</span>
+        </div>
+        <div class="summary-sub">${month}</div>
+        <div class="summary-grid">
+          <div class="summary-box">
+            <div>総走行距離</div>
+            <div style="font-weight:600; font-size:1.1rem;">
+              ${formatNumber(dist)} km
+            </div>
+          </div>
+          <div class="summary-box">
+            <div>総給油量</div>
+            <div style="font-weight:600; font-size:1.1rem;">
+              ${fuel.toFixed(2)} L
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document
+      .querySelector(`.tab-btn[onclick*="${tab}"]`)
+      .classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(v => {
+      v.classList.add('hidden');
+    });
+    document.getElementById(`view-${tab}`).classList.remove('hidden');
+    if (tab === 'list') renderList();
+    if (tab === 'summary') renderSummary();
+  }
+
+  function toggleImportPanel() {
+    const panel = document.getElementById('import-panel');
+    panel.classList.toggle('hidden');
+  }
+
+  function importCSV() {
+    const file = document.getElementById('csvFile').files[0];
+    if (!file) {
+      showNotification('CSVファイルを選んでください。');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => parseAndImport(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function parseAndImport(csv) {
+    if (!db) return;
+    const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+    if (lines.length <= 1) {
+      showNotification('有効なデータが見つかりません。');
+      return;
+    }
+
+    const header = lines[0].split(',').map(cleanCell);
+    let dateIdx = 0, odoIdx = 1, fuelIdx = 2, memoIdx = -1;
+
+    header.forEach((name, i) => {
+      if (/(日付|date)/i.test(name)) dateIdx = i;
+      if (/(オド|距離|メータ|積算)/.test(name)) odoIdx = i;
+      if (/(給油|燃料|合計燃料|L)/i.test(name)) fuelIdx = i;
+      if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+    });
+
+    const records = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(cleanCell);
+      if (!cols[dateIdx] && !cols[odoIdx]) continue;
+      const date = cols[dateIdx].replace(/\./g, '-').replace(/\//g, '-');
+      const odoStr = toHalfWidth(cols[odoIdx]).replace(/,/g, '');
+      const fuelStr = cols[fuelIdx] || '';
+      const odo = parseFloat(odoStr);
+      const fuel = parseFuelInput(fuelStr);
+      if (!date || isNaN(odo) || isNaN(fuel)) continue;
+      records.push({
+        date,
+        odometer: odo,
+        fuel,
+        memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
+        timestamp: Date.now()
+      });
+    }
+    if (records.length === 0) {
+      showNotification('取り込める行がありませんでした。');
+      return;
+    }
+
+    const existingKey = new Set(
+      allLogs.map(l => `${l.date}|${l.odometer}`)
+    );
+    const toImport = records.filter(r =>
+      !existingKey.has(`${r.date}|${r.odometer}`)
+    );
+
+    if (toImport.length === 0) {
+      showNotification('新規データはありませんでした。');
+      return;
+    }
+
+    const tx = db.transaction([STORE_NAME], 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    toImport.forEach(r => store.add(r));
+    tx.oncomplete = () => {
+      showNotification(`${toImport.length}件インポートしました。`);
+      document.getElementById('csvFile').value = '';
+      loadLogs();
+    };
+  }
+
+  function exportCSV() {
+    if (allLogs.length === 0) {
+      showNotification('データがありません。');
+      return;
+    }
+    let csv =
+      '日付,オドメーター,走行距離,給油量,燃費,メモ\n';
+    allLogs.forEach(l => {
+      csv += [
+        l.date,
+        l.odometer,
+        l.isFirst ? 0 : l.distance,
+        (l.totalFuel || 0).toFixed(2),
+        l.isFirst ? 0 : l.efficiency.toFixed(2),
+        `"${(l.memo || '').replace(/"/g, '""')}"`
+      ].join(',') + '\n';
+    });
+    const blob = new Blob(
+      [new Uint8Array([0xEF, 0xBB, 0xBF]), csv],
+      { type: 'text/csv' }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cub_log.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function showNotification(msg) {
+    const el = document.getElementById('notification');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  function toHalfWidth(str) {
+    return (str || '').replace(/[０-９．，]/g, ch => {
+      const code = ch.charCodeAt(0);
+      if (ch === '．') return '.';
+      if (ch === '，') return ',';
+      return String.fromCharCode(code - 0xFEE0);
+    });
+  }
+  function cleanCell(c) {
+    return c.replace(/^"|"$/g, '').trim();
+  }
+  function escapeHtml(s) {
+    return (s || '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;',
+      '"': '&quot;', "'": '&#039;'
+    })[c]);
+  }
+  function formatNumber(n) {
+    if (!n && n !== 0) return '';
+    return Number(n).toLocaleString('ja-JP', { maximumFractionDigits: 1 });
+  }
+
+  // テキストから給油量をパースして小数第2位にそろえる
+  function parseFuelInput(value) {
+    const s = toHalfWidth(value || '').replace(/,/g, '').trim();
+    if (!s) return NaN;
+    const num = parseFloat(s);
+    if (isNaN(num)) return NaN;
+    return Math.round(num * 100) / 100;
+  }
+</script>
+</body>
+</html>
