@@ -7,10 +7,13 @@
   <title>スーパーカブ燃費記録</title>
   <meta name="theme-color" content="#047857">
   <meta name="description" content="スーパーカブ燃費管理アプリ">
+  <!-- ★ここがポイント：PWA 用 manifest を読む -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛵</text></svg>">
 
   <style>
     :root {
-      --primary-color: #047857;   /* 緑ベース（カブ用） */
+      --primary-color: #047857;
       --secondary-color: #10b981;
       --accent-color: #f59e0b;
       --bg-color: #f3f4f6;
@@ -248,8 +251,8 @@
     }
     .fuel-badge {
       display: inline-block;
-      background: #d1fae5;
-      color: #047857;
+      background: #e0f2fe;
+      color: #0369a1;
       padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       font-size: 0.8rem;
@@ -357,13 +360,13 @@
         </div>
         <div class="form-group">
           <label for="fuel">給油量 (L)</label>
-          <input type="number" id="fuel" step="0.01"
-                 placeholder="例: 3.45" inputmode="decimal">
+          <input type="number" id="fuel" step="0.1"
+                 placeholder="給油量" inputmode="decimal">
         </div>
         <div class="form-group">
           <label for="memo">メモ</label>
           <textarea id="memo" rows="2"
-                    placeholder="給油場所・走行条件など"></textarea>
+                    placeholder="場所や走り方など"></textarea>
         </div>
         <button type="submit" class="btn btn-main" id="submitButton">
           💾 記録を追加する
@@ -386,7 +389,7 @@
       <input type="file" id="csvFile" accept=".csv">
       <button class="btn btn-import" onclick="importCSV()">📥 インポート実行</button>
       <div style="margin-top:0.3rem; color:#6b7280;">
-        千区切り付き数値（例: 12,345.6）にも対応します。
+        千区切り付き数値（例: 5,432.1）にも対応します。
       </div>
     </div>
 
@@ -419,7 +422,8 @@
 <div id="notification">保存しました</div>
 
 <script>
-  const DB_NAME = 'CubFuelDB';   // トラックと分ける
+  // ★トラック版と被らないように DB 名を変えとく
+  const DB_NAME = 'CubFuelDB';
   const DB_VERSION = 1;
   const STORE_NAME = 'logs';
   let db;
@@ -438,6 +442,12 @@
 
     document.getElementById('fuelForm')
       .addEventListener('submit', handleSubmit);
+
+    // すでに sw.js がリポジトリにある前提（トラック版と共通）
+    if ('serviceWorker' in navigator &&
+        (location.protocol === 'http:' || location.protocol === 'https:')) {
+      navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
   });
 
   function initDB() {
@@ -462,8 +472,7 @@
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
-      fuelA: parseFloat(document.getElementById('fuel').value) || 0,
-      fuelB: 0,
+      fuel: parseFloat(document.getElementById('fuel').value) || 0,
       memo: document.getElementById('memo').value,
       timestamp: Date.now()
     };
@@ -537,8 +546,7 @@
           if (d > 0) distance = d;
           else isFirst = true;
         }
-        const totalFuel =
-          (parseFloat(log.fuelA) || 0) + (parseFloat(log.fuelB) || 0);
+        const totalFuel = parseFloat(log.fuel) || 0;
         const efficiency =
           distance > 0 && totalFuel > 0 ? distance / totalFuel : 0;
         const enriched = {
@@ -584,8 +592,7 @@
       id: -1,
       date,
       odometer: odo,
-      fuelA: fuel,
-      fuelB: 0
+      fuel
     }];
     sortBase.sort((a, b) => {
       if (a.date === b.date) return (a.odometer || 0) - (b.odometer || 0);
@@ -606,7 +613,7 @@
     document.getElementById('preview-distance').textContent =
       formatNumber(dist);
     document.getElementById('preview-fuel').textContent =
-      fuel.toFixed(2);
+      fuel.toFixed(1);
     document.getElementById('preview-efficiency').textContent =
       (dist / fuel).toFixed(2) + ' km/L';
     card.classList.add('visible');
@@ -622,15 +629,14 @@
     }
     [...allLogs].slice().reverse().forEach(log => {
       const dateStr = log.date || '';
-      const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(2) : '-';
+      const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(1) : '-';
       const effText = log.isFirst || log.efficiency <= 0
         ? '-'
         : log.efficiency.toFixed(2);
       const distText = log.isFirst || log.distance <= 0
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
-      const memoText = [log.isAggregated ? '⚠️ 合算あり' : '', log.memo || '']
-        .join(' ').trim();
+      const memoText = log.memo || '';
       container.insertAdjacentHTML('beforeend', `
         <div class="log-card">
           <div class="log-header">
@@ -677,7 +683,7 @@
     editingId = id;
     document.getElementById('date').value = log.date;
     document.getElementById('odometer').value = log.odometer;
-    document.getElementById('fuel').value = log.fuelA || '';
+    document.getElementById('fuel').value = log.fuel || '';
     document.getElementById('memo').value = log.memo || '';
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
@@ -744,7 +750,7 @@
           <div class="summary-box">
             <div>総給油量</div>
             <div style="font-weight:600; font-size:1.1rem;">
-              ${fuel.toFixed(2)} L
+              ${fuel.toFixed(1)} L
             </div>
           </div>
         </div>
@@ -814,8 +820,7 @@
       records.push({
         date,
         odometer: odo,
-        fuelA: fuel,
-        fuelB: 0,
+        fuel,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
         timestamp: Date.now()
       });
@@ -853,13 +858,12 @@
       return;
     }
     let csv =
-      '日付,積算距離,走行距離,給油量,合計燃料,燃費,メモ\n';
+      '日付,積算距離,走行距離,給油量,燃費,メモ\n';
     allLogs.forEach(l => {
       csv += [
         l.date,
         l.odometer,
         l.isFirst ? 0 : l.distance,
-        l.fuelA || 0,
         l.totalFuel || 0,
         l.isFirst ? 0 : l.efficiency.toFixed(2),
         `"${(l.memo || '').replace(/"/g, '""')}"`
