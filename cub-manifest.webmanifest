@@ -3,7 +3,7 @@
   "short_name": "カブ燃費",
   "start_url": "./cub.html",
   "display": "standalone",
-  "background_color": "#020617",
+  "background_color": "#0f172a",
   "theme_color": "#0f766e",
   "lang": "ja-JP",
   "icons": []
