@@ -7,17 +7,12 @@
   <title>スーパーカブ燃費記録</title>
   <meta name="theme-color" content="#0f766e">
   <meta name="description" content="スーパーカブ燃費管理アプリ">
-
-  <!-- ★カブ専用のマニフェスト -->
   <link rel="manifest" href="cub-manifest.webmanifest">
-
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛵</text></svg>">
-
   <style>
     :root {
       --primary-color: #0f766e;
       --secondary-color: #14b8a6;
-      --accent-color: #f59e0b;
+      --accent-color: #f97316;
       --bg-color: #f3f4f6;
       --text-color: #1f2937;
       --card-bg: #ffffff;
@@ -107,7 +102,7 @@
     input:focus, textarea:focus {
       outline: none;
       border-color: var(--secondary-color);
-      box-shadow: 0 0 0 3px rgba(34,211,238,0.25);
+      box-shadow: 0 0 0 3px rgba(45,212,191,0.35);
     }
 
     .btn {
@@ -253,8 +248,8 @@
     }
     .fuel-badge {
       display: inline-block;
-      background: #e0f2fe;
-      color: #075985;
+      background: #ecfeff;
+      color: #155e75;
       padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       font-size: 0.8rem;
@@ -285,7 +280,7 @@
       margin-top: 0.7rem;
     }
     .summary-box {
-      background: rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.12);
       padding: 0.7rem;
       border-radius: 6px;
       font-size: 0.85rem;
@@ -352,18 +347,18 @@
         <div class="form-group">
           <label for="odometer">積算距離 (km)</label>
           <input type="number" id="odometer"
-                 placeholder="例: 12345.6" step="0.1" inputmode="decimal" required>
+                 placeholder="例: 56218.1" step="0.1" inputmode="decimal" required>
           <small id="last-odometer-hint" class="hint"></small>
         </div>
         <div class="form-group">
           <label for="fuel">給油量 (L)</label>
           <input type="number" id="fuel" step="0.01"
-                 placeholder="例: 3.25" inputmode="decimal">
+                 placeholder="例: 3.46" inputmode="decimal">
         </div>
         <div class="form-group">
           <label for="memo">メモ</label>
           <textarea id="memo" rows="2"
-                    placeholder="給油場所・ルート・条件など"></textarea>
+                    placeholder="給油場所や走行条件など"></textarea>
         </div>
         <button type="submit" class="btn btn-main" id="submitButton">
           💾 記録を追加する
@@ -380,13 +375,17 @@
 
     <div id="import-panel" class="import-section hidden">
       <div style="color:var(--import-color); font-weight:600; margin-bottom:0.3rem;">
-        🛵 CSVインポート（ヘッダー自動判定）
+        🛵 CSVインポート（Googleスプレッドシート対応）
       </div>
-      <div>※1行目をヘッダーとして、日付・距離・給油量の列を自動で探します。</div>
+      <div>1行目をヘッダーとみなし、日付・積算距離・給油量の列を自動判定します。</div>
+      <div style="margin-top:0.2rem;">
+        形式例：<br>
+        <code>2024/08/12,56,218.10km,3.46l,45.17km/l</code>
+      </div>
       <input type="file" id="csvFile" accept=".csv">
       <button class="btn btn-import" onclick="importCSV()">📥 インポート実行</button>
       <div style="margin-top:0.3rem; color:#6b7280;">
-        GoogleスプレッドシートのCSV出力（千区切り付き）にも対応します。
+        千区切り（56,218.10）や「km」「l」「km/l」付きも自動で数値化します。
       </div>
     </div>
 
@@ -422,7 +421,6 @@
   const DB_NAME = 'CubFuelDB';
   const DB_VERSION = 1;
   const STORE_NAME = 'logs';
-
   let db;
   let allLogs = [];
   let editingId = null;
@@ -431,7 +429,6 @@
     document.getElementById('date').valueAsDate = new Date();
     document.getElementById('summaryMonth').value =
       new Date().toISOString().slice(0, 7);
-
     initDB();
 
     ['odometer', 'fuel', 'date'].forEach(id => {
@@ -443,7 +440,7 @@
 
     if ('serviceWorker' in navigator &&
         (location.protocol === 'http:' || location.protocol === 'https:')) {
-      navigator.serviceWorker.register('./sw.js').catch(console.error);
+      navigator.serviceWorker.register('./cub-sw.js').catch(console.error);
     }
   });
 
@@ -453,7 +450,7 @@
       db = e.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME,
-                      { keyPath: 'id', autoIncrement: true });
+                        { keyPath: 'id', autoIncrement: true });
         store.createIndex('date', 'date');
       }
     };
@@ -532,7 +529,6 @@
         if (a.date === b.date) return (a.odometer || 0) - (b.odometer || 0);
         return a.date < b.date ? -1 : 1;
       });
-
       let prev = null;
       allLogs = raw.map((log, idx) => {
         let distance = 0;
@@ -580,8 +576,9 @@
     const date = document.getElementById('date').value || '';
     const odo = parseFloat(document.getElementById('odometer').value);
     const fuel = parseFloat(document.getElementById('fuel').value) || 0;
+    const totalFuel = fuel;
 
-    if (!date || isNaN(odo) || fuel <= 0) {
+    if (!date || isNaN(odo) || totalFuel <= 0) {
       card.classList.remove('visible');
       return;
     }
@@ -611,9 +608,9 @@
     document.getElementById('preview-distance').textContent =
       formatNumber(dist);
     document.getElementById('preview-fuel').textContent =
-      fuel.toFixed(2);
+      totalFuel.toFixed(2);
     document.getElementById('preview-efficiency').textContent =
-      (dist / fuel).toFixed(2) + ' km/L';
+      (dist / totalFuel).toFixed(2) + ' km/L';
     card.classList.add('visible');
   }
 
@@ -635,7 +632,6 @@
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
       const memoText = log.memo || '';
-
       container.insertAdjacentHTML('beforeend', `
         <div class="log-card">
           <div class="log-header">
@@ -788,6 +784,31 @@
     reader.readAsText(file, 'UTF-8');
   }
 
+  // 1行分のCSVを、"..." 対応で正しく分割
+  function parseCSVLine(line) {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(cur);
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur);
+    return result;
+  }
+
   function parseAndImport(csv) {
     if (!db) return;
     const lines = csv.split(/\r?\n/).map(l => l.trim()).filter(l => l);
@@ -796,24 +817,29 @@
       return;
     }
 
-    const header = lines[0].split(',').map(cleanCell);
-    let dateIdx = 0, odoIdx = 1, fuelIdx = 2, memoIdx = -1;
+    const header = parseCSVLine(lines[0]).map(cleanCell);
+    let dateIdx = 0, odoIdx = 1, fuelIdx = 2;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
-      if (/(オド|距離|メータ|積算)/.test(name)) odoIdx = i;
-      if (/(給油|燃料|L|ガソリン)/i.test(name)) fuelIdx = i;
-      if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+      if (/(距離|積算|オド|メータ)/.test(name)) odoIdx = i;
+      if (/(給油|燃料|量|L|ℓ)/i.test(name)) fuelIdx = i;
     });
 
     const records = [];
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(cleanCell);
+      const cols = parseCSVLine(lines[i]).map(cleanCell);
       if (!cols[dateIdx] && !cols[odoIdx]) continue;
 
-      const date = cols[dateIdx].replace(/\./g, '-').replace(/\//g, '-');
-      const odoStr = toHalfWidth(cols[odoIdx]).replace(/,/g, '');
-      const fuelStr = toHalfWidth(cols[fuelIdx] || '').replace(/,/g, '');
+      const rawDate = cols[dateIdx] || '';
+      const date = rawDate.replace(/\./g, '-').replace(/\//g, '-');
+
+      const odoStrRaw = toHalfWidth(cols[odoIdx] || '');
+      const fuelStrRaw = toHalfWidth(cols[fuelIdx] || '');
+
+      const odoStr = odoStrRaw.replace(/,/g, '').replace(/[^0-9.\-]/g, '');
+      const fuelStr = fuelStrRaw.replace(/,/g, '').replace(/[^0-9.\-]/g, '');
+
       const odo = parseFloat(odoStr);
       const fuel = parseFloat(fuelStr);
 
@@ -823,7 +849,7 @@
         date,
         odometer: odo,
         fuel,
-        memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
+        memo: `CSV行${i + 1}`,
         timestamp: Date.now()
       });
     }
@@ -861,14 +887,14 @@
       return;
     }
     let csv =
-      '日付,積算距離,走行距離,給油量,燃費,メモ\n';
+      '日付,積算距離,給油量,燃費,メモ\n';
     allLogs.forEach(l => {
+      const eff = l.isFirst ? '' : l.efficiency.toFixed(2);
       csv += [
         l.date,
         l.odometer,
-        l.isFirst ? 0 : l.distance,
-        l.fuel || 0,
-        l.isFirst ? 0 : l.efficiency.toFixed(2),
+        l.totalFuel || 0,
+        eff,
         `"${(l.memo || '').replace(/"/g, '""')}"`
       ].join(',') + '\n';
     });
@@ -900,7 +926,7 @@
     });
   }
   function cleanCell(c) {
-    return c.replace(/^"|"$/g, '').trim();
+    return (c || '').replace(/^"|"$/g, '').trim();
   }
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({
