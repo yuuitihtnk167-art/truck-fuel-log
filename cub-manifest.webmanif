@@ -1,29 +1,19 @@
 {
   "name": "スーパーカブ燃費記録",
   "short_name": "カブ燃費",
-  "start_url": "./cub.html",
+  "start_url": "./cub.html",  // ここを確認してください
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f766e",
   "lang": "ja-JP",
   "icons": [
     {
-      "src": "images/bike-icon.png",
-      "sizes": "96x96",
-      "type": "image/png"
-    },
-    {
-      "src": "images/bike-icon.png",
-      "sizes": "128x128",
-      "type": "image/png"
-    },
-    {
-      "src": "images/bike-icon.png",
+      "src": "./icon.png",  // アイコンのパスを適切に変更してください
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "images/bike-icon.png",
+      "src": "./icon-512.png",  // 必要に応じて大きいアイコンも設定
       "sizes": "512x512",
       "type": "image/png"
     }
