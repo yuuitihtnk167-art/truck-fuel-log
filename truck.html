@@ -9,7 +9,6 @@
   <meta name="description" content="大型トラック燃費管理アプリ">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
-
   <style>
     :root {
       --primary-color: #1e3a8a;
@@ -34,7 +33,7 @@
       font-size: 16px;
     }
     header {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      background-color: var(--primary-color);
       color: #fff;
       padding: 1rem;
       text-align: center;
@@ -62,7 +61,6 @@
       opacity: 0.5;
       text-decoration: line-through;
     }
-
     .container {
       max-width: 620px;
       margin: 0 auto;
@@ -92,7 +90,6 @@
       color: var(--primary-color);
       border-bottom-color: var(--primary-color);
     }
-
     .form-group { margin-bottom: 0.9rem; }
     label {
       display: block;
@@ -121,7 +118,6 @@
       border-color: var(--secondary-color);
       box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
     }
-
     .btn {
       border: none;
       border-radius: 8px;
@@ -135,13 +131,12 @@
     }
     .btn:active { filter: brightness(0.95); }
     .btn-main {
-      padding: 0.7rem 0.9rem;
-      font-size: 0.9rem;
+      width: 100%;
+      padding: 0.9rem;
+      font-size: 1rem;
       background: var(--primary-color);
       color: #fff;
-    }
-    .btn-wide {
-      width: 100%;
+      margin-top: 0.3rem;
     }
     .btn-danger {
       padding: 0.35rem 0.6rem;
@@ -174,7 +169,7 @@
     .btn-toggle-import {
       width: 100%;
       padding: 0.7rem;
-      margin: 0.8rem 0 0.6rem;
+      margin-bottom: 0.6rem;
       background: #6b7280;
       color: #fff;
       font-size: 0.9rem;
@@ -187,7 +182,6 @@
       color: #fff;
       font-size: 0.9rem;
     }
-
     #fuel-preview-card {
       background: var(--success-bg);
       color: var(--success-text);
@@ -195,8 +189,8 @@
       border-radius: 8px;
       margin-bottom: 1rem;
       border: 1px solid #86efac;
-      font-size: 0.9rem;
       display: none;
+      font-size: 0.9rem;
     }
     #fuel-preview-card.visible { display: block; }
     .preview-value {
@@ -208,7 +202,6 @@
       font-size: 0.8rem;
       margin-top: 0.2rem;
     }
-
     .log-card {
       background: var(--card-bg);
       border-radius: 8px;
@@ -273,7 +266,6 @@
       font-size: 0.8rem;
       font-weight: 600;
     }
-
     .summary-card {
       background: var(--primary-color);
       color: #fff;
@@ -303,7 +295,6 @@
       border-radius: 6px;
       font-size: 0.85rem;
     }
-
     .import-section {
       margin-top: 0.5rem;
       padding: 0.7rem;
@@ -312,15 +303,6 @@
       background: #f9fafb;
       font-size: 0.8rem;
     }
-
-    .latest-section-title {
-      margin-top: 0.8rem;
-      margin-bottom: 0.3rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: #374151;
-    }
-
     #notification {
       position: fixed;
       bottom: 20px;
@@ -336,15 +318,7 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.4);
       white-space: nowrap;
     }
-
     .hidden { display: none; }
-    .form-row-inline {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 0.5rem;
-      align-items: end;
-      margin-bottom: 0.6rem;
-    }
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -373,7 +347,7 @@
       <div class="preview-value" id="preview-efficiency">-</div>
       <div class="preview-sub">
         走行: <span id="preview-distance">0</span> km /
-        給油: <span id="preview-fuel">0.0</span> L
+        給油: <span id="preview-fuel">0</span> L
       </div>
     </div>
 
@@ -406,7 +380,7 @@
           <textarea id="memo" rows="2"
                     placeholder="場所や荷物の状況など"></textarea>
         </div>
-        <button type="submit" class="btn btn-main btn-wide" id="submitButton">
+        <button type="submit" class="btn btn-main" id="submitButton">
           💾 記録を追加する
         </button>
       </form>
@@ -415,32 +389,6 @@
 
   <!-- 履歴 -->
   <div id="view-list" class="hidden tab-content">
-
-    <!-- 月指定＋表示ボタン（一番上） -->
-    <div class="form-group">
-      <label for="historyMonth">表示する月</label>
-      <div class="form-row-inline">
-        <input type="month" id="historyMonth">
-        <button class="btn btn-main" type="button" onclick="showMonthlyHistory()">
-          📅 この月の履歴を表示
-        </button>
-      </div>
-      <small class="hint">
-        ※下の「指定月の履歴」エリアに、その月だけ全件表示します。
-      </small>
-    </div>
-
-    <!-- 直近10件 -->
-    <div>
-      <div class="latest-section-title">直近10件</div>
-      <div id="latest-container">
-        <p style="text-align:center; color:#888; padding:0.8rem 0;">
-          データを読み込み中…
-        </p>
-      </div>
-    </div>
-
-    <!-- CSVインポート -->
     <button class="btn btn-toggle-import" onclick="toggleImportPanel()">
       📥 CSVインポート機能を開く
     </button>
@@ -457,14 +405,10 @@
       </div>
     </div>
 
-    <!-- 指定月の履歴 -->
-    <div style="margin-top:0.8rem;">
-      <div class="latest-section-title">指定月の履歴</div>
-      <div id="logs-container">
-        <p style="text-align:center; color:#888; padding:1.2rem 0;">
-          月を選んで「この月の履歴を表示」を押してください。
-        </p>
-      </div>
+    <div id="logs-container">
+      <p style="text-align:center; color:#888; padding:1.5rem 0;">
+        データを読み込み中…
+      </p>
     </div>
 
     <button class="btn btn-export" onclick="exportCSV()">📤 CSVエクスポート</button>
@@ -502,14 +446,12 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
-    const nowMonth = new Date().toISOString().slice(0, 7);
-    document.getElementById('summaryMonth').value = nowMonth;
-    document.getElementById('historyMonth').value = nowMonth;
-
+    document.getElementById('summaryMonth').value =
+      new Date().toISOString().slice(0, 7);
     initDB();
     updateSoundButton();
 
-    ['odometer', 'fuelA', 'fuelB', 'date'].forEach(id => {
+    ['odometer', 'fuelA', 'fuelB'].forEach(id => {
       document.getElementById(id).addEventListener('input', updatePreview);
     });
 
@@ -526,6 +468,7 @@
     isSoundOn = !isSoundOn;
     localStorage.setItem('truckAppSound', isSoundOn ? 'on' : 'off');
     updateSoundButton();
+    if (isSoundOn) playHorn();
   }
   function updateSoundButton() {
     const btn = document.getElementById('sound-toggle');
@@ -536,6 +479,29 @@
       btn.textContent = '🔇';
       btn.classList.add('muted');
     }
+  }
+  function playHorn() {
+    if (!isSoundOn) return;
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(392, now);
+    osc2.frequency.setValueAtTime(493, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc1.connect(gain); osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc1.start(now); osc2.start(now);
+    osc1.stop(now + 0.3); osc2.stop(now + 0.3);
   }
 
   function initDB() {
@@ -581,6 +547,7 @@
     const tx = db.transaction([STORE_NAME], 'readwrite');
     tx.objectStore(STORE_NAME).add(data);
     tx.oncomplete = () => {
+      playHorn();
       resetForm();
       loadLogs();
       showNotification('記録を追加しました。');
@@ -600,6 +567,7 @@
       store.put(updated);
     };
     tx.oncomplete = () => {
+      playHorn();
       resetForm();
       loadLogs();
       showNotification('記録を更新しました。');
@@ -659,7 +627,7 @@
           'まだ記録がありません。';
       }
 
-      renderLatest();
+      renderList();
       renderSummary();
       updatePreview();
     };
@@ -668,20 +636,17 @@
   function updatePreview() {
     const card = document.getElementById('fuel-preview-card');
     if (allLogs.length === 0) { card.classList.remove('visible'); return; }
-    const date = document.getElementById('date').value || '';
     const odo = parseFloat(document.getElementById('odometer').value);
     const fuelA = parseFloat(document.getElementById('fuelA').value) || 0;
     const fuelB = parseFloat(document.getElementById('fuelB').value) || 0;
     const totalFuel = fuelA + fuelB;
-
-    if (!date || isNaN(odo) || totalFuel <= 0) {
+    if (!odo || totalFuel <= 0) {
       card.classList.remove('visible');
       return;
     }
-
     const sortBase = [...allLogs, {
       id: -1,
-      date,
+      date: document.getElementById('date').value || '',
       odometer: odo,
       fuelA, fuelB
     }];
@@ -700,7 +665,6 @@
       card.classList.remove('visible');
       return;
     }
-
     document.getElementById('preview-distance').textContent =
       formatNumber(dist);
     document.getElementById('preview-fuel').textContent =
@@ -710,103 +674,63 @@
     card.classList.add('visible');
   }
 
-  // 直近10件の表示
-  function renderLatest() {
-    const container = document.getElementById('latest-container');
-    if (!container) return;
+  function renderList() {
+    const container = document.getElementById('logs-container');
     container.innerHTML = '';
     if (allLogs.length === 0) {
       container.innerHTML =
-        '<p style="text-align:center; padding:1rem 0; color:#888;">まだデータがありません。</p>';
+        '<p style="text-align:center; padding:2rem 0; color:#888;">まだデータがありません。</p>';
       return;
     }
-    const latest = [...allLogs].slice(-10).reverse();
-    latest.forEach(log => {
-      container.insertAdjacentHTML('beforeend', buildLogCardHtml(log));
+    [...allLogs].slice().reverse().forEach(log => {
+      const dateStr = log.date || '';
+      const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(1) : '-';
+      const effText = log.isFirst || log.efficiency <= 0
+        ? '-'
+        : log.efficiency.toFixed(2);
+      const distText = log.isFirst || log.distance <= 0
+        ? '(初回)'
+        : '+' + formatNumber(log.distance) + ' km';
+      const memoText = [log.isAggregated ? '⚠️ 合算あり' : '', log.memo || '']
+        .join(' ').trim();
+      container.insertAdjacentHTML('beforeend', `
+        <div class="log-card">
+          <div class="log-header">
+            <span class="log-date">${escapeHtml(dateStr)}</span>
+            <div class="log-actions">
+              <button class="btn btn-small" onclick="editLog(${log.id})">
+                編集
+              </button>
+              <button class="btn btn-danger" onclick="deleteLog(${log.id})">
+                削除
+              </button>
+            </div>
+          </div>
+          <div class="log-main-row">
+            <div>
+              <span style="font-size:0.8rem; color:#6b7280;">今回燃費</span><br>
+              <span class="log-km">${effText}</span>
+              <span style="font-size:0.85rem;">km/L</span>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:0.8rem; color:#6b7280;">走行距離</span><br>
+              <span style="font-weight:600;">${distText}</span>
+            </div>
+          </div>
+          <div class="log-details">
+            <div class="log-stat-item">
+              <span>積算距離</span>
+              ${formatNumber(log.odometer)} km
+            </div>
+            <div class="log-stat-item">
+              <span>給油合計</span>
+              <span class="fuel-badge">${fuelText} L</span>
+            </div>
+          </div>
+          ${memoText ? `<div class="log-footer">${escapeHtml(memoText)}</div>` : ''}
+        </div>
+      `);
     });
-  }
-
-  // 指定月の履歴（全件）
-  function showMonthlyHistory() {
-    const month = document.getElementById('historyMonth').value;
-    if (!month) {
-      showNotification('年月を選んでください。');
-      return;
-    }
-    renderList(month);
-  }
-
-  function renderList(month) {
-    const container = document.getElementById('logs-container');
-    container.innerHTML = '';
-    const targetMonth = month || document.getElementById('historyMonth').value;
-    if (!targetMonth) {
-      container.innerHTML =
-        '<p style="text-align:center; padding:1.2rem 0; color:#888;">年月を選んでください。</p>';
-      return;
-    }
-
-    const monthly = allLogs.filter(l => (l.date || '').startsWith(targetMonth));
-    if (monthly.length === 0) {
-      container.innerHTML =
-        `<p style="text-align:center; padding:1.2rem 0; color:#888;">${targetMonth} のデータはありません。</p>`;
-      return;
-    }
-
-    [...monthly].slice().reverse().forEach(log => {
-      container.insertAdjacentHTML('beforeend', buildLogCardHtml(log));
-    });
-  }
-
-  function buildLogCardHtml(log) {
-    const dateStr = log.date || '';
-    const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(1) : '-';
-    const effText = log.isFirst || log.efficiency <= 0
-      ? '-'
-      : log.efficiency.toFixed(2);
-    const distText = log.isFirst || log.distance <= 0
-      ? '(初回)'
-      : '+' + formatNumber(log.distance) + ' km';
-    const memoText = [log.isAggregated ? '⚠️ 合算あり' : '', log.memo || '']
-      .join(' ').trim();
-
-    return `
-      <div class="log-card">
-        <div class="log-header">
-          <span class="log-date">${escapeHtml(dateStr)}</span>
-          <div class="log-actions">
-            <button class="btn btn-small" onclick="editLog(${log.id})">
-              編集
-            </button>
-            <button class="btn btn-danger" onclick="deleteLog(${log.id})">
-              削除
-            </button>
-          </div>
-        </div>
-        <div class="log-main-row">
-          <div>
-            <span style="font-size:0.8rem; color:#6b7280;">今回燃費</span><br>
-            <span class="log-km">${effText}</span>
-            <span style="font-size:0.85rem;">km/L</span>
-          </div>
-          <div style="text-align:right;">
-            <span style="font-size:0.8rem; color:#6b7280;">走行距離</span><br>
-            <span style="font-weight:600;">${distText}</span>
-          </div>
-        </div>
-        <div class="log-details">
-          <div class="log-stat-item">
-            <span>積算距離</span>
-            ${formatNumber(log.odometer)} km
-          </div>
-          <div class="log-stat-item">
-            <span>給油合計</span>
-            <span class="fuel-badge">${fuelText} L</span>
-          </div>
-        </div>
-        ${memoText ? `<div class="log-footer">${escapeHtml(memoText)}</div>` : ''}
-      </div>
-    `;
   }
 
   function editLog(id) {
@@ -841,10 +765,7 @@
     tx.objectStore(STORE_NAME).clear();
     tx.oncomplete = () => {
       allLogs = [];
-      renderLatest();
-      const logsContainer = document.getElementById('logs-container');
-      logsContainer.innerHTML =
-        '<p style="text-align:center; padding:1.2rem 0; color:#888;">月を選んで「この月の履歴を表示」を押してください。</p>';
+      renderList();
       renderSummary();
       showNotification('全データを削除しました。');
     };
@@ -905,11 +826,8 @@
       v.classList.add('hidden');
     });
     document.getElementById(`view-${tab}`).classList.remove('hidden');
+    if (tab === 'list') renderList();
     if (tab === 'summary') renderSummary();
-    if (tab === 'list') {
-      // 履歴タブに入ったときは、直近10件だけ即表示
-      renderLatest();
-    }
   }
 
   function toggleImportPanel() {
