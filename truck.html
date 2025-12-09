@@ -46,21 +46,7 @@
       justify-content: center;
     }
     header h1 { margin: 0; font-size: 1.1rem; }
-    #sound-toggle {
-      position: absolute;
-      right: 15px;
-      background: none;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 5px;
-      opacity: 0.85;
-    }
-    #sound-toggle.muted {
-      opacity: 0.5;
-      text-decoration: line-through;
-    }
+
     .container {
       max-width: 620px;
       margin: 0 auto;
@@ -330,7 +316,6 @@
 <body>
 <header>
   <h1>🚛 トラック燃費記録</h1>
-  <button id="sound-toggle" onclick="toggleSound()">🔊</button>
 </header>
 
 <div class="container">
@@ -366,12 +351,14 @@
         <div class="form-row">
           <div class="form-group">
             <label for="fuelA">給油A (L)</label>
-            <input type="number" id="fuelA" step="0.1"
+            <!-- 小数点2桁対応 -->
+            <input type="number" id="fuelA" step="0.01"
                    placeholder="主タンク" inputmode="decimal">
           </div>
           <div class="form-group">
             <label for="fuelB">給油B (L)</label>
-            <input type="number" id="fuelB" step="0.1"
+            <!-- 小数点2桁対応 -->
+            <input type="number" id="fuelB" step="0.01"
                    placeholder="サブ" inputmode="decimal">
           </div>
         </div>
@@ -441,15 +428,11 @@
   let allLogs = [];
   let editingId = null;
 
-  let isSoundOn = localStorage.getItem('truckAppSound') !== 'off';
-  let audioCtx = null;
-
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
     document.getElementById('summaryMonth').value =
       new Date().toISOString().slice(0, 7);
     initDB();
-    updateSoundButton();
 
     ['odometer', 'fuelA', 'fuelB'].forEach(id => {
       document.getElementById(id).addEventListener('input', updatePreview);
@@ -463,46 +446,6 @@
       navigator.serviceWorker.register('./sw.js').catch(console.error);
     }
   });
-
-  function toggleSound() {
-    isSoundOn = !isSoundOn;
-    localStorage.setItem('truckAppSound', isSoundOn ? 'on' : 'off');
-    updateSoundButton();
-    if (isSoundOn) playHorn();
-  }
-  function updateSoundButton() {
-    const btn = document.getElementById('sound-toggle');
-    if (isSoundOn) {
-      btn.textContent = '🔊';
-      btn.classList.remove('muted');
-    } else {
-      btn.textContent = '🔇';
-      btn.classList.add('muted');
-    }
-  }
-  function playHorn() {
-    if (!isSoundOn) return;
-    if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AC();
-    }
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const now = audioCtx.currentTime;
-    const osc1 = audioCtx.createOscillator();
-    const osc2 = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc1.type = 'sawtooth';
-    osc2.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(392, now);
-    osc2.frequency.setValueAtTime(493, now);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.4, now + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-    osc1.connect(gain); osc2.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc1.start(now); osc2.start(now);
-    osc1.stop(now + 0.3); osc2.stop(now + 0.3);
-  }
 
   function initDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -547,7 +490,6 @@
     const tx = db.transaction([STORE_NAME], 'readwrite');
     tx.objectStore(STORE_NAME).add(data);
     tx.oncomplete = () => {
-      playHorn();
       resetForm();
       loadLogs();
       showNotification('記録を追加しました。');
@@ -567,7 +509,6 @@
       store.put(updated);
     };
     tx.oncomplete = () => {
-      playHorn();
       resetForm();
       loadLogs();
       showNotification('記録を更新しました。');
@@ -972,3 +913,4 @@
 </script>
 </body>
 </html>
+```0
