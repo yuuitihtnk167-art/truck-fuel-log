@@ -7,7 +7,8 @@
   <title>トラック燃費記録</title>
   <meta name="theme-color" content="#1e3a8a">
   <meta name="description" content="大型トラック燃費管理アプリ">
-  <link rel="manifest" href="truck-manifest.webmanifest">
+  <!-- ★ 相対パスを明示（レポジトリ名に依存しない） -->
+  <link rel="manifest" href="./truck-manifest.webmanifest">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚛</text></svg>">
   <style>
     :root {
@@ -351,13 +352,11 @@
         <div class="form-row">
           <div class="form-group">
             <label for="fuelA">給油A (L)</label>
-            <!-- 小数点2桁対応 -->
             <input type="number" id="fuelA" step="0.01"
                    placeholder="主タンク" inputmode="decimal">
           </div>
           <div class="form-group">
             <label for="fuelB">給油B (L)</label>
-            <!-- 小数点2桁対応 -->
             <input type="number" id="fuelB" step="0.01"
                    placeholder="サブ" inputmode="decimal">
           </div>
@@ -441,6 +440,7 @@
     document.getElementById('fuelForm')
       .addEventListener('submit', handleSubmit);
 
+    // ★ Service Worker も相対パスでOK（レポジトリ名変更の影響なし）
     if ('serviceWorker' in navigator &&
         (location.protocol === 'http:' || location.protocol === 'https:')) {
       navigator.serviceWorker.register('./sw.js').catch(console.error);
@@ -608,7 +608,6 @@
     }
     document.getElementById('preview-distance').textContent =
       formatNumber(dist);
-    // ★ プレビューの合計給油量を小数点2桁表示に変更
     document.getElementById('preview-fuel').textContent =
       totalFuel.toFixed(2);
     document.getElementById('preview-efficiency').textContent =
@@ -626,7 +625,6 @@
     }
     [...allLogs].slice().reverse().forEach(log => {
       const dateStr = log.date || '';
-      // ★ 給油合計の表示を小数点2桁に変更
       const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(2) : '-';
       const effText = log.isFirst || log.efficiency <= 0
         ? '-'
@@ -865,7 +863,6 @@
         l.date,
         l.odometer,
         l.isFirst ? 0 : l.distance,
-        // ★ CSV出力も小数点2桁で統一
         (l.fuelA || 0).toFixed(2),
         (l.fuelB || 0).toFixed(2),
         (l.totalFuel || 0).toFixed(2),
