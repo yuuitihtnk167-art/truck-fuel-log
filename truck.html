@@ -631,7 +631,13 @@
             lastFullOdo !== null ? lastFullOdo : pendingStartOdo;
           totalFuel = fuelNow + pendingFuel;
           if (pendingFuel > 0) isAggregated = true;
-          if (startOdo !== null && typeof log.odometer === 'number') {
+          if (pendingFuel > 0 && startOdo !== null && typeof log.odometer === 'number') {
+            const d = (log.odometer || 0) - (startOdo || 0);
+            if (d > 0) distance = d;
+            else isFirst = true;
+          } else if (Number.isFinite(log.csvDistance) && log.csvDistance > 0) {
+            distance = log.csvDistance;
+          } else if (startOdo !== null && typeof log.odometer === 'number') {
             const d = (log.odometer || 0) - (startOdo || 0);
             if (d > 0) distance = d;
             else isFirst = true;
@@ -901,11 +907,12 @@
     }
 
     const header = lines[0].split(',').map(cleanCell);
-    let dateIdx = 0, odoIdx = 1, fuelIdx = 2, memoIdx = -1;
+    let dateIdx = 0, odoIdx = 1, distIdx = 2, fuelIdx = 2, memoIdx = -1;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
-      if (/(オド|距離|メータ|積算)/i.test(name)) odoIdx = i;
+      if (/(オド|メータ|積算距離)/i.test(name)) odoIdx = i;
+      if (/(走行距離|走行)/i.test(name)) distIdx = i;
       if (/(給油|燃料|合計燃料|L)/i.test(name)) fuelIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
     });
@@ -916,8 +923,10 @@
       if (!cols[dateIdx] && !cols[odoIdx]) continue;
       const date = cols[dateIdx].replace(/\./g, '-').replace(/\//g, '-');
       const odoStr = toHalfWidth(cols[odoIdx]).replace(/,/g, '');
+      const distStr = toHalfWidth(cols[distIdx] || '').replace(/,/g, '');
       const fuelStr = toHalfWidth(cols[fuelIdx] || '').replace(/,/g, '');
       const odo = parseFloat(odoStr);
+      const csvDistance = parseFloat(distStr);
       const fuel = parseFloat(fuelStr);
       if (!date || isNaN(odo) || isNaN(fuel)) continue;
       records.push({
@@ -926,6 +935,7 @@
         fuelA: fuel,
         fuelB: 0,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
+        csvDistance: Number.isFinite(csvDistance) ? csvDistance : undefined,
         isFull: true,
         timestamp: Date.now()
       });
