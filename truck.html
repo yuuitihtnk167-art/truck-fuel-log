@@ -352,7 +352,7 @@
       padding: 0.6rem 0.9rem;
       border-radius: 10px;
       font-size: 0.85rem;
-      display: none;
+      display: flex;
       z-index: 1000;
       box-shadow: 0 8px 20px rgba(0,0,0,0.4);
       align-items: center;
@@ -509,7 +509,7 @@
 
 <div id="notification">保存しました</div>
 <div id="update-banner">
-  <span>更新があります</span>
+  <span id="update-status">更新確認</span>
   <button type="button" id="apply-update">更新する</button>
 </div>
 
@@ -549,14 +549,15 @@
         .then((registration) => {
           const banner = document.getElementById('update-banner');
           const applyBtn = document.getElementById('apply-update');
+          const statusText = document.getElementById('update-status');
           let refreshing = false;
 
           function promptUpdate(worker) {
             if (!banner || !applyBtn || !worker) return;
-            banner.style.display = 'flex';
             applyBtn.onclick = () => {
               worker.postMessage({ type: 'SKIP_WAITING' });
             };
+            if (statusText) statusText.textContent = '更新があります';
           }
 
           if (registration.waiting) {
@@ -572,6 +573,22 @@
               }
             };
           };
+
+          if (applyBtn) {
+            applyBtn.onclick = () => {
+              if (statusText) statusText.textContent = '更新を確認中...';
+              registration.update().then(() => {
+                if (registration.waiting) {
+                  promptUpdate(registration.waiting);
+                } else if (statusText) {
+                  statusText.textContent = '更新はありません';
+                  setTimeout(() => { statusText.textContent = '更新確認'; }, 3000);
+                }
+              }).catch(() => {
+                if (statusText) statusText.textContent = '更新に失敗しました';
+              });
+            };
+          }
 
           navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (refreshing) return;
