@@ -1,17 +1,8 @@
-{
+﻿{
   "name": "トラック燃費記録",
-  "short_name": "トラック燃費",
+  "short_name": "燃費記録",
   "start_url": "./truck.html",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme_color": "#0f766e",
-  "icons": [
-    {
-      "src": "truck-icon.png",  // トラック用アイコン
-      "sizes": "192x192",
-      "type": "image/png"
-    }
-  ]
+  "theme_color": "#0f766e"
 }
-
-
