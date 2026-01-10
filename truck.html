@@ -168,6 +168,34 @@
       color: #fff;
       font-size: 0.9rem;
     }
+    .toggle-group {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .toggle-group input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.45rem 0.5rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-group input:checked + .toggle-btn {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
     .action-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -320,6 +348,10 @@
       grid-template-columns: 1fr 1fr;
       gap: 0.7rem;
     }
+    .memo-row {
+      grid-template-columns: 140px 1fr;
+      align-items: start;
+    }
     small.hint { font-size: 0.75rem; color: #6b7280; }
     .build-info {
       margin-top: 0.8rem;
@@ -378,10 +410,21 @@
                    placeholder="サブタンク" inputmode="decimal">
           </div>
         </div>
-        <div class="form-group">
-          <label for="memo">メモ</label>
-          <textarea id="memo" rows="2"
-                    placeholder="場所や天候の状況など"></textarea>
+        <div class="form-row memo-row">
+          <div class="form-group">
+            <label>満タン</label>
+            <div class="toggle-group">
+              <input type="radio" name="fullness" id="full-yes" value="full" checked>
+              <label class="toggle-btn" for="full-yes">満タン</label>
+              <input type="radio" name="fullness" id="full-no" value="partial">
+              <label class="toggle-btn" for="full-no">未満タン</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="memo">メモ</label>
+            <textarea id="memo" rows="2"
+                      placeholder="場所や天候の状況など"></textarea>
+          </div>
         </div>
         <button type="submit" class="btn btn-main" id="submitButton">
           💾 記録を追加する
@@ -457,6 +500,9 @@
     ['odometer', 'fuelA', 'fuelB'].forEach(id => {
       document.getElementById(id).addEventListener('input', updatePreview);
     });
+    ['full-yes', 'full-no'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updatePreview);
+    });
 
     document.getElementById('fuelForm')
       .addEventListener('submit', handleSubmit);
@@ -492,12 +538,14 @@
 
   function handleSubmit(e) {
     e.preventDefault();
+    const isFull = document.getElementById('full-yes').checked;
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
       memo: document.getElementById('memo').value,
+      isFull,
       timestamp: Date.now()
     };
     if (!data.date || isNaN(data.odometer)) {
@@ -548,6 +596,7 @@
     document.getElementById('date').valueAsDate = new Date();
     document.getElementById('submitButton').textContent = '💾 記録を追加する';
     document.getElementById('fuel-preview-card').classList.remove('visible');
+    document.getElementById('full-yes').checked = true;
   }
 
   function loadLogs() {
@@ -559,29 +608,56 @@
         if (a.date === b.date) return (a.odometer || 0) - (b.odometer || 0);
         return a.date < b.date ? -1 : 1;
       });
-      let prev = null;
+      let lastFullOdo = null;
+      let pendingFuel = 0;
+      let pendingStartOdo = null;
       allLogs = raw.map((log, idx) => {
+        const isFull = log.isFull !== false;
         let distance = 0;
         let isFirst = false;
-        if (idx === 0) {
-          isFirst = true;
-        } else if (prev && typeof prev.odometer === 'number') {
-          const d = (log.odometer || 0) - (prev.odometer || 0);
-          if (d > 0) distance = d;
-          else isFirst = true;
-        }
-        const totalFuel =
+        let isAggregated = false;
+        let isDeferred = false;
+        const fuelNow =
           (parseFloat(log.fuelA) || 0) + (parseFloat(log.fuelB) || 0);
+        let totalFuel = fuelNow;
+        if (!isFull) {
+          pendingFuel += fuelNow;
+          if (pendingStartOdo === null && typeof log.odometer === 'number') {
+            pendingStartOdo = log.odometer;
+          }
+          isDeferred = true;
+        } else {
+          const startOdo =
+            lastFullOdo !== null ? lastFullOdo : pendingStartOdo;
+          totalFuel = fuelNow + pendingFuel;
+          if (pendingFuel > 0) isAggregated = true;
+          if (startOdo !== null && typeof log.odometer === 'number') {
+            const d = (log.odometer || 0) - (startOdo || 0);
+            if (d > 0) distance = d;
+            else isFirst = true;
+          } else if (idx === 0) {
+            isFirst = true;
+          } else {
+            isFirst = true;
+          }
+          pendingFuel = 0;
+          pendingStartOdo = null;
+          if (typeof log.odometer === 'number') {
+            lastFullOdo = log.odometer;
+          }
+        }
         const efficiency =
           distance > 0 && totalFuel > 0 ? distance / totalFuel : 0;
         const enriched = {
           ...log,
+          isFull,
           distance,
           totalFuel,
           efficiency,
-          isFirst
+          isFirst,
+          isAggregated,
+          isDeferred
         };
-        prev = enriched;
         return enriched;
       });
 
@@ -603,31 +679,27 @@
   function updatePreview() {
     const card = document.getElementById('fuel-preview-card');
     if (allLogs.length === 0) { card.classList.remove('visible'); return; }
+    if (!document.getElementById('full-yes').checked) {
+      card.classList.remove('visible');
+      return;
+    }
     const odo = parseFloat(document.getElementById('odometer').value);
     const fuelA = parseFloat(document.getElementById('fuelA').value) || 0;
     const fuelB = parseFloat(document.getElementById('fuelB').value) || 0;
-    const totalFuel = fuelA + fuelB;
-    if (!odo || totalFuel <= 0) {
+    const totalFuelInput = fuelA + fuelB;
+    if (!odo || totalFuelInput <= 0) {
       card.classList.remove('visible');
       return;
     }
-    const sortBase = [...allLogs, {
-      id: -1,
-      date: document.getElementById('date').value || '',
-      odometer: odo,
-      fuelA, fuelB
-    }];
-    sortBase.sort((a, b) => {
-      if (a.date === b.date) return (a.odometer || 0) - (b.odometer || 0);
-      return a.date < b.date ? -1 : 1;
-    });
-    const idx = sortBase.findIndex(l => l.id === -1);
-    if (idx <= 0) {
+    const state = getPendingState();
+    const startOdo =
+      state.lastFullOdo !== null ? state.lastFullOdo : state.pendingStartOdo;
+    if (startOdo === null) {
       card.classList.remove('visible');
       return;
     }
-    const prev = sortBase[idx - 1];
-    const dist = odo - (prev.odometer || 0);
+    const dist = odo - (startOdo || 0);
+    const totalFuel = totalFuelInput + state.pendingFuel;
     if (dist <= 0) {
       card.classList.remove('visible');
       return;
@@ -652,14 +724,19 @@
     [...allLogs].slice().reverse().forEach(log => {
       const dateStr = log.date || '';
       const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(1) : '-';
-      const effText = log.isFirst || log.efficiency <= 0
+      const effText = log.isFirst || !log.isFull || log.efficiency <= 0
         ? '-'
         : log.efficiency.toFixed(2);
-      const distText = log.isFirst || log.distance <= 0
+      const distText = !log.isFull
+        ? '(未満タン)'
+        : log.isFirst || log.distance <= 0
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
-      const memoText = [log.isAggregated ? '⚠️ 合算あり' : '', log.memo || '']
-        .join(' ').trim();
+      const memoText = [
+        log.isFull ? '' : '未満タン',
+        log.isAggregated ? '⚠️ 合算あり' : '',
+        log.memo || ''
+      ].join(' ').trim();
       container.insertAdjacentHTML('beforeend', `
         <div class="log-card">
           <div class="log-header">
@@ -709,6 +786,8 @@
     document.getElementById('fuelA').value = log.fuelA || '';
     document.getElementById('fuelB').value = log.fuelB || '';
     document.getElementById('memo').value = log.memo || '';
+    document.getElementById('full-yes').checked = log.isFull !== false;
+    document.getElementById('full-no').checked = log.isFull === false;
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
     updatePreview();
@@ -751,7 +830,7 @@
     let dist = 0;
     let fuel = 0;
     monthly.forEach(l => {
-      if (!l.isFirst && l.distance > 0 && l.totalFuel > 0) {
+      if (l.isFull && !l.isFirst && l.distance > 0 && l.totalFuel > 0) {
         dist += l.distance;
         fuel += l.totalFuel;
       }
@@ -847,6 +926,7 @@
         fuelA: fuel,
         fuelB: 0,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
+        isFull: true,
         timestamp: Date.now()
       });
     }
@@ -908,6 +988,29 @@
     URL.revokeObjectURL(url);
   }
 
+  function getPendingState() {
+    let pendingFuel = 0;
+    let pendingStartOdo = null;
+    let lastFullOdo = null;
+    allLogs.forEach(log => {
+      const isFull = log.isFull !== false;
+      const fuelNow =
+        (parseFloat(log.fuelA) || 0) + (parseFloat(log.fuelB) || 0);
+      if (!isFull) {
+        pendingFuel += fuelNow;
+        if (pendingStartOdo === null && typeof log.odometer === 'number') {
+          pendingStartOdo = log.odometer;
+        }
+      } else {
+        pendingFuel = 0;
+        pendingStartOdo = null;
+        if (typeof log.odometer === 'number') {
+          lastFullOdo = log.odometer;
+        }
+      }
+    });
+    return { pendingFuel, pendingStartOdo, lastFullOdo };
+  }
   function showNotification(msg) {
     const el = document.getElementById('notification');
     el.textContent = msg;
