@@ -352,7 +352,7 @@
       padding: 0.6rem 0.9rem;
       border-radius: 10px;
       font-size: 0.85rem;
-      display: flex;
+      display: none;
       z-index: 1000;
       box-shadow: 0 8px 20px rgba(0,0,0,0.4);
       align-items: center;
@@ -552,12 +552,21 @@
           const statusText = document.getElementById('update-status');
           let refreshing = false;
 
+          function updateBannerVisibility() {
+            if (!banner) return;
+            const isInput =
+              document.getElementById('view-input') &&
+              !document.getElementById('view-input').classList.contains('hidden');
+            banner.style.display = isInput ? 'flex' : 'none';
+          }
+
           function promptUpdate(worker) {
             if (!banner || !applyBtn || !worker) return;
             applyBtn.onclick = () => {
               worker.postMessage({ type: 'SKIP_WAITING' });
             };
             if (statusText) statusText.textContent = '更新があります';
+            updateBannerVisibility();
           }
 
           if (registration.waiting) {
@@ -587,6 +596,7 @@
               }).catch(() => {
                 if (statusText) statusText.textContent = '更新に失敗しました';
               });
+              updateBannerVisibility();
             };
           }
 
@@ -595,6 +605,8 @@
             refreshing = true;
             window.location.reload();
           });
+
+          updateBannerVisibility();
         })
         .catch(console.error);
     }
@@ -959,6 +971,10 @@
       v.classList.add('hidden');
     });
     document.getElementById(`view-${tab}`).classList.remove('hidden');
+    const banner = document.getElementById('update-banner');
+    if (banner) {
+      banner.style.display = tab === 'input' ? 'flex' : 'none';
+    }
     if (tab === 'list') renderList();
     if (tab === 'summary') renderSummary();
   }
