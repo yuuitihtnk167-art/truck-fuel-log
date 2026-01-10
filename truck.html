@@ -169,6 +169,13 @@
       color: #fff;
       font-size: 0.9rem;
     }
+    .button-row {
+      display: flex;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .btn-flex { flex: 1; }
     #fuel-preview-card {
       background: var(--success-bg);
       color: var(--success-text);
@@ -391,16 +398,16 @@
       </div>
     </div>
 
+    <div class="button-row">
+      <button class="btn btn-export btn-flex" onclick="exportCSV()">📤 CSVエクスポート</button>
+      <button class="btn btn-full-danger btn-flex" onclick="deleteAllLogs()">🗑️ 全データ削除</button>
+    </div>
+
     <div id="logs-container">
       <p style="text-align:center; color:#888; padding:1.5rem 0;">
         データを読み込み中…
       </p>
     </div>
-
-    <button class="btn btn-export" onclick="exportCSV()">📤 CSVエクスポート</button>
-    <button class="btn btn-full-danger" onclick="deleteAllLogs()">
-      🗑️ 全データ削除
-    </button>
   </div>
 
   <!-- 集計 -->
@@ -534,11 +541,17 @@
         return a.date < b.date ? -1 : 1;
       });
       let prev = null;
-      allLogs = raw.map((log, idx) => {
+        const debugRows = [];
+        allLogs = raw.map((log, idx) => {
         let distance = 0;
         let isFirst = false;
+        // If CSV provided a dedicated "走行距離" value, prefer that
         if (idx === 0) {
           isFirst = true;
+        } else if (typeof log.csvDistance === 'number') {
+          // use CSV-provided trip distance when available
+          if (log.csvDistance > 0) distance = log.csvDistance;
+          else isFirst = true;
         } else if (prev && typeof prev.odometer === 'number') {
           const d = (log.odometer || 0) - (prev.odometer || 0);
           if (d > 0) distance = d;
@@ -555,9 +568,11 @@
           efficiency,
           isFirst
         };
+        debugRows.push({idx, odometer: log.odometer, csvDistance: log.csvDistance, distance, isFirst});
         prev = enriched;
         return enriched;
       });
+      console.log('loadLogs debug sample:', debugRows.slice(0, 30));
 
       if (allLogs.length > 0) {
         const last = allLogs[allLogs.length - 1];
@@ -795,37 +810,68 @@
       return;
     }
 
-    const header = lines[0].split(',').map(cleanCell);
-    let dateIdx = 0, odoIdx = 1, fuelIdx = 2, memoIdx = -1;
+    const header = splitCSVLine(lines[0]).map(cleanCell);
+    let dateIdx = -1, odoIdx = -1, tripDistIdx = -1, fuelTotalIdx = -1, fuelAIdx = -1, fuelBIdx = -1, memoIdx = -1;
 
     header.forEach((name, i) => {
-      if (/(日付|date)/i.test(name)) dateIdx = i;
-      if (/(オド|距離|メータ|積算)/.test(name)) odoIdx = i;
-      if (/(給油|燃料|合計燃料|L)/i.test(name)) fuelIdx = i;
-      if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+      const n = String(name || '');
+      if (/(日付|date)/i.test(n)) dateIdx = i;
+      if (/(積算|オド|メータ)/i.test(n)) odoIdx = i;
+      if (/(走行距離|走行|trip|distance|km)/i.test(n)) tripDistIdx = i;
+      if (/(合計燃料|合計|total)/i.test(n)) fuelTotalIdx = i;
+      if (/(給油A|給油Ａ|fuelA)/i.test(n)) fuelAIdx = i;
+      if (/(給油B|給油Ｂ|fuelB)/i.test(n)) fuelBIdx = i;
+      if (/(給油|燃料|L\b)/i.test(n) && fuelTotalIdx < 0 && fuelAIdx < 0 && fuelBIdx < 0) fuelTotalIdx = i;
+      if (/(メモ|備考|note)/i.test(n)) memoIdx = i;
     });
 
+    console.log('CSV header:', header);
+    console.log('Detected idx:', { dateIdx, odoIdx, fuelTotalIdx, fuelAIdx, fuelBIdx, memoIdx });
+
+    // Fallback defaults if header not detected
+    if (dateIdx < 0) dateIdx = 0;
+    if (odoIdx < 0) odoIdx = 1;
+
     const records = [];
+    const skipped = [];
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(cleanCell);
-      if (!cols[dateIdx] && !cols[odoIdx]) continue;
-      const date = cols[dateIdx].replace(/\./g, '-').replace(/\//g, '-');
-      const odoStr = toHalfWidth(cols[odoIdx]).replace(/,/g, '');
-      const fuelStr = toHalfWidth(cols[fuelIdx] || '').replace(/,/g, '');
+      const cols = splitCSVLine(lines[i]).map(cleanCell);
+      if (!cols[dateIdx] && !cols[odoIdx]) { skipped.push({line: i+1, reason: 'no date/odo', raw: lines[i]}); continue; }
+      const date = (cols[dateIdx] || '').replace(/\./g, '-').replace(/\//g, '-');
+      const odoStr = toHalfWidth(cols[odoIdx] || '').replace(/,/g, '');
       const odo = parseFloat(odoStr);
-      const fuel = parseFloat(fuelStr);
-      if (!date || isNaN(odo) || isNaN(fuel)) continue;
+      const tripStr = tripDistIdx >= 0 ? toHalfWidth(cols[tripDistIdx] || '').replace(/,/g, '') : '';
+      const tripDist = tripStr ? parseFloat(tripStr) : NaN;
+
+      // 給油量は「合計」「給油A」「給油B」から組み立てる
+      let fuel = NaN;
+      if (fuelTotalIdx >= 0 && cols[fuelTotalIdx]) {
+        const f = toHalfWidth(cols[fuelTotalIdx]).replace(/,/g, '');
+        fuel = parseFloat(f);
+      }
+      const aVal = (fuelAIdx >= 0 && cols[fuelAIdx]) ? parseFloat(toHalfWidth(cols[fuelAIdx]).replace(/,/g, '')) : NaN;
+      const bVal = (fuelBIdx >= 0 && cols[fuelBIdx]) ? parseFloat(toHalfWidth(cols[fuelBIdx]).replace(/,/g, '')) : NaN;
+      if (isNaN(fuel)) {
+        if (!isNaN(aVal) && !isNaN(bVal)) fuel = (aVal || 0) + (bVal || 0);
+        else if (!isNaN(aVal)) fuel = aVal;
+        else if (!isNaN(bVal)) fuel = bVal;
+      }
+
+      if (!date || isNaN(odo) || isNaN(fuel)) { skipped.push({line: i+1, reason: `bad values date:${!!date} odo:${!isNaN(odo)} fuel:${!isNaN(fuel)}`, cols}); continue; }
       records.push({
         date,
         odometer: odo,
-        fuelA: fuel,
-        fuelB: 0,
+        // if CSV provides trip distance, store it so calculations can use it
+        csvDistance: !isNaN(tripDist) ? tripDist : undefined,
+        fuelA: !isNaN(aVal) ? (aVal || 0) : (isNaN(bVal) ? fuel : 0),
+        fuelB: !isNaN(bVal) ? (bVal || 0) : 0,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
         timestamp: Date.now()
       });
     }
     if (records.length === 0) {
-      showNotification('取り込める行がありませんでした。');
+      console.warn('No records parsed. Skipped rows:', skipped.slice(0,10));
+      showNotification('取り込める行がありませんでした（コンソール参照）。');
       return;
     }
 
@@ -899,6 +945,28 @@
   }
   function cleanCell(c) {
     return c.replace(/^"|"$/g, '').trim();
+  }
+  // CSVの1行をクォート考慮で分割する（簡易パーサ）
+  function splitCSVLine(line) {
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+        continue;
+      }
+      if (ch === ',' && !inQuotes) {
+        result.push(cur);
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    result.push(cur);
+    return result;
   }
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({
