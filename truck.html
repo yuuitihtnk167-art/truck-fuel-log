@@ -342,6 +342,32 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.4);
       white-space: nowrap;
     }
+    #update-banner {
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #f9fafb;
+      padding: 0.6rem 0.9rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      align-items: center;
+      gap: 0.6rem;
+    }
+    #update-banner button {
+      border: none;
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #10b981;
+      color: #fff;
+      cursor: pointer;
+    }
     .hidden { display: none; }
     .form-row {
       display: grid;
@@ -482,6 +508,10 @@
 </div>
 
 <div id="notification">保存しました</div>
+<div id="update-banner">
+  <span>更新があります</span>
+  <button type="button" id="apply-update">更新する</button>
+</div>
 
 <script>
   const DB_NAME = 'TruckFuelDB';
@@ -515,7 +545,41 @@
 
     if ('serviceWorker' in navigator &&
         (location.protocol === 'http:' || location.protocol === 'https:')) {
-      navigator.serviceWorker.register('./truck-sw.js').catch(console.error);
+      navigator.serviceWorker.register('./truck-sw.js')
+        .then((registration) => {
+          const banner = document.getElementById('update-banner');
+          const applyBtn = document.getElementById('apply-update');
+          let refreshing = false;
+
+          function promptUpdate(worker) {
+            if (!banner || !applyBtn || !worker) return;
+            banner.style.display = 'flex';
+            applyBtn.onclick = () => {
+              worker.postMessage({ type: 'SKIP_WAITING' });
+            };
+          }
+
+          if (registration.waiting) {
+            promptUpdate(registration.waiting);
+          }
+
+          registration.onupdatefound = () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+            newWorker.onstatechange = () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                promptUpdate(newWorker);
+              }
+            };
+          };
+
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
+        })
+        .catch(console.error);
     }
   });
 
