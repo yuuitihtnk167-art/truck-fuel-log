@@ -1,6 +1,6 @@
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open('truck-cache-v2').then((cache) => {
+    caches.open('truck-cache-v3').then((cache) => {
       return cache.addAll([
         './',
         './truck.html',
@@ -17,7 +17,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys
-          .filter((key) => key !== 'truck-cache-v2')
+          .filter((key) => key !== 'truck-cache-v3')
           .map((key) => caches.delete(key))
       );
     }).then(() => self.clients.claim())
