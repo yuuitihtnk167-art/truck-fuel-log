@@ -908,15 +908,25 @@
     }
 
     const header = lines[0].split(',').map(cleanCell);
-    let dateIdx = 0, odoIdx = 1, distIdx = 2, fuelIdx = 2, memoIdx = -1;
+    let dateIdx = 0;
+    let odoIdx = 1;
+    let distIdx = -1;
+    let fuelAIdx = -1;
+    let fuelBIdx = -1;
+    let fuelTotalIdx = -1;
+    let memoIdx = -1;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
-      if (/(オド|メータ|積算距離)/i.test(name)) odoIdx = i;
-      if (/(走行距離|走行)/i.test(name)) distIdx = i;
-      if (/(給油|燃料|合計燃料|L)/i.test(name)) fuelIdx = i;
+      if (/(積算走行距離|積算距離|オド|メータ)/i.test(name)) odoIdx = i;
+      if (/(走行距離|走行)/i.test(name) && !/積算/.test(name)) distIdx = i;
+      if (/(給油A|給油\s*A)/i.test(name)) fuelAIdx = i;
+      if (/(給油B|給油\s*B)/i.test(name)) fuelBIdx = i;
+      if (/(給油量|給油合計|合計燃料|燃料|L)/i.test(name)) fuelTotalIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
     });
+    if (fuelAIdx < 0 && fuelTotalIdx >= 0) fuelAIdx = fuelTotalIdx;
+    if (fuelAIdx < 0) fuelAIdx = 2;
 
     const records = [];
     for (let i = 1; i < lines.length; i++) {
@@ -924,17 +934,23 @@
       if (!cols[dateIdx] && !cols[odoIdx]) continue;
       const date = cols[dateIdx].replace(/\./g, '-').replace(/\//g, '-');
       const odoStr = toHalfWidth(cols[odoIdx]).replace(/,/g, '');
-      const distStr = toHalfWidth(cols[distIdx] || '').replace(/,/g, '');
-      const fuelStr = toHalfWidth(cols[fuelIdx] || '').replace(/,/g, '');
+      const distStr = distIdx >= 0
+        ? toHalfWidth(cols[distIdx] || '').replace(/,/g, '')
+        : '';
+      const fuelAStr = toHalfWidth(cols[fuelAIdx] || '').replace(/,/g, '');
+      const fuelBStr = fuelBIdx >= 0
+        ? toHalfWidth(cols[fuelBIdx] || '').replace(/,/g, '')
+        : '';
       const odo = parseFloat(odoStr);
       const csvDistance = parseFloat(distStr);
-      const fuel = parseFloat(fuelStr);
-      if (!date || isNaN(odo) || isNaN(fuel)) continue;
+      const fuelA = parseFloat(fuelAStr);
+      const fuelB = parseFloat(fuelBStr) || 0;
+      if (!date || isNaN(odo) || isNaN(fuelA)) continue;
       records.push({
         date,
         odometer: odo,
-        fuelA: fuel,
-        fuelB: 0,
+        fuelA,
+        fuelB,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
         csvDistance: Number.isFinite(csvDistance) ? csvDistance : undefined,
         isFull: true,
