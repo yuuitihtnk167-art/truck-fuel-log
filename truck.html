@@ -806,8 +806,8 @@
     const tx = db.transaction([STORE_NAME], 'readwrite');
     tx.objectStore(STORE_NAME).delete(id);
     tx.oncomplete = () => {
-      showNotification('削除しました。');
-      loadLogs();
+      loadLogs(() => exportCSV());
+      showNotification('削除しました。CSVを保存しました。');
     };
   }
 
