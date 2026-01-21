@@ -565,8 +565,8 @@
     tx.objectStore(STORE_NAME).add(data);
     tx.oncomplete = () => {
       resetForm();
-      loadLogs();
-      showNotification('記録を追加しました。');
+      loadLogs(() => exportCSV());
+      showNotification('記録を追加しました。CSVを保存しました。');
     };
     tx.onerror = () => showNotification('記録に失敗しました。');
   }
@@ -599,7 +599,7 @@
     document.getElementById('full-yes').checked = true;
   }
 
-  function loadLogs() {
+  function loadLogs(onLoaded) {
     if (!db) return;
     const tx = db.transaction([STORE_NAME], 'readonly');
     tx.objectStore(STORE_NAME).getAll().onsuccess = e => {
@@ -679,6 +679,7 @@
       renderList();
       renderSummary();
       updatePreview();
+      if (typeof onLoaded === 'function') onLoaded();
     };
   }
 
