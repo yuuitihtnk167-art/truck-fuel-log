@@ -1164,6 +1164,8 @@
     let memoIdx = -1;
     let loadUpIdx = -1;
     let loadDownIdx = -1;
+    let speedUpIdx = -1;
+    let speedDownIdx = -1;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
@@ -1175,6 +1177,8 @@
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
       if (/(上り積載|上り重量|上り荷|上り)/i.test(name)) loadUpIdx = i;
       if (/(下り積載|下り重量|下り荷|下り)/i.test(name)) loadDownIdx = i;
+      if (/(上り速度|max上り|上りmax|上り速度max|上り速度MAX)/i.test(name)) speedUpIdx = i;
+      if (/(下り速度|max下り|下りmax|下り速度max|下り速度MAX)/i.test(name)) speedDownIdx = i;
     });
     if (fuelAIdx < 0 && fuelTotalIdx >= 0) fuelAIdx = fuelTotalIdx;
     if (fuelAIdx < 0) fuelAIdx = 2;
@@ -1194,12 +1198,16 @@
         : '';
       const loadUpStr = loadUpIdx >= 0 ? cols[loadUpIdx] : '';
       const loadDownStr = loadDownIdx >= 0 ? cols[loadDownIdx] : '';
+      const speedUpStr = speedUpIdx >= 0 ? cols[speedUpIdx] : '';
+      const speedDownStr = speedDownIdx >= 0 ? cols[speedDownIdx] : '';
       const odo = parseFloat(odoStr);
       const csvDistance = parseFloat(distStr);
       const fuelA = parseFloat(fuelAStr);
       const fuelB = parseFloat(fuelBStr) || 0;
       const loadUp = parseLoadValue(loadUpStr);
       const loadDown = parseLoadValue(loadDownStr);
+      const speedUpMax = parseBoolCell(speedUpStr);
+      const speedDownMax = parseBoolCell(speedDownStr);
       if (!date || isNaN(odo) || isNaN(fuelA)) continue;
       const record = {
         date,
@@ -1213,6 +1221,8 @@
       };
       if (loadUp) record.loadUp = loadUp;
       if (loadDown) record.loadDown = loadDown;
+      if (speedUpMax) record.speedUpMax = true;
+      if (speedDownMax) record.speedDownMax = true;
       records.push(record);
     }
     if (records.length === 0) {
@@ -1248,7 +1258,7 @@
       return;
     }
     let csv =
-      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上り積載,下り積載,メモ\n';
+      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
     allLogs.forEach(l => {
       csv += [
         l.date,
@@ -1260,6 +1270,8 @@
         l.isFirst ? 0 : l.efficiency.toFixed(2),
         loadLabel(l.loadUp),
         loadLabel(l.loadDown),
+        l.speedUpMax ? '1' : '',
+        l.speedDownMax ? '1' : '',
         `"${(l.memo || '').replace(/"/g, '""')}"`
       ].join(',') + '\n';
     });
@@ -1316,6 +1328,16 @@
   }
   function cleanCell(c) {
     return c.replace(/^"|"$/g, '').trim();
+  }
+  function parseBoolCell(value) {
+    const v = toHalfWidth(value || '').trim().toLowerCase();
+    if (!v) return false;
+    if (['1', 'true', 'yes', 'y', 'on', 'ok'].includes(v)) return true;
+    if (v.includes('有') || v.includes('あり') || v.includes('〇') || v.includes('○')) {
+      return true;
+    }
+    if (v.includes('速度max') || v.includes('max')) return true;
+    return false;
   }
   function loadLabel(value) {
     if (value === 'heavy') return '重い';
