@@ -368,6 +368,21 @@
     .toggle-group.inline {
       grid-template-columns: repeat(3, 1fr);
     }
+    .sub-section {
+      margin-top: 0.5rem;
+    }
+    .tag-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.15rem 0.45rem;
+      border-radius: 9999px;
+      background: var(--primary-color);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      line-height: 1;
+    }
     small.hint { font-size: 0.75rem; color: #6b7280; }
     .build-info {
       margin-top: 0.8rem;
@@ -434,6 +449,15 @@
               <label class="toggle-btn" for="full-yes">満タン</label>
               <input type="radio" name="fullness" id="full-no" value="partial">
               <label class="toggle-btn" for="full-no">未満タン</label>
+            </div>
+            <div class="sub-section">
+              <div class="load-label">速度MAX</div>
+              <div class="toggle-group inline">
+                <input type="checkbox" id="speed-up-max">
+                <label class="toggle-btn" for="speed-up-max">上り</label>
+                <input type="checkbox" id="speed-down-max">
+                <label class="toggle-btn" for="speed-down-max">下り</label>
+              </div>
             </div>
           </div>
           <div class="form-group">
@@ -586,6 +610,11 @@
     ['full-yes', 'full-no'].forEach(id => {
       document.getElementById(id).addEventListener('change', updatePreview);
     });
+    document.getElementById('full-no').addEventListener('change', e => {
+      if (e.target.checked) {
+        showNotification('未満タン: 次回の満タンで合算します。');
+      }
+    });
 
     document.getElementById('fuelForm')
       .addEventListener('submit', handleSubmit);
@@ -624,6 +653,8 @@
     const isFull = document.getElementById('full-yes').checked;
     const loadUpInput = document.querySelector('input[name="loadUp"]:checked');
     const loadDownInput = document.querySelector('input[name="loadDown"]:checked');
+    const speedUpMax = document.getElementById('speed-up-max').checked;
+    const speedDownMax = document.getElementById('speed-down-max').checked;
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
@@ -631,6 +662,8 @@
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
       loadUp: loadUpInput ? loadUpInput.value : '',
       loadDown: loadDownInput ? loadDownInput.value : '',
+      speedUpMax,
+      speedDownMax,
       isFull,
       timestamp: Date.now()
     };
@@ -685,6 +718,8 @@
     document.getElementById('full-yes').checked = true;
     document.getElementById('load-up-medium').checked = true;
     document.getElementById('load-down-medium').checked = true;
+    document.getElementById('speed-up-max').checked = false;
+    document.getElementById('speed-down-max').checked = false;
   }
 
   function loadLogs(onLoaded) {
@@ -832,12 +867,14 @@
       const loadText = (loadUpText || loadDownText)
         ? `上り:${loadUpText || '-'} / 下り:${loadDownText || '-'}`
         : '';
+      const speedText = speedMaxLabel(log);
       const memoText = [
         log.isFull ? '' : '未満タン',
         log.isAggregated ? '⚠️ 合算あり' : '',
         loadText,
-        log.memo || ''
-      ].join(' ').trim();
+        speedText,
+        log.memo ? escapeHtml(log.memo) : ''
+      ].filter(Boolean).join(' ');
       container.insertAdjacentHTML('beforeend', `
         <div class="log-card">
           <div class="log-header">
@@ -872,7 +909,7 @@
               <span class="fuel-badge">${fuelText} L</span>
             </div>
           </div>
-          ${memoText ? `<div class="log-footer">${escapeHtml(memoText)}</div>` : ''}
+          ${memoText ? `<div class="log-footer">${memoText}</div>` : ''}
         </div>
       `);
     });
@@ -898,6 +935,8 @@
     );
     if (loadUpInput) loadUpInput.checked = true;
     if (loadDownInput) loadDownInput.checked = true;
+    document.getElementById('speed-up-max').checked = !!log.speedUpMax;
+    document.getElementById('speed-down-max').checked = !!log.speedDownMax;
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
     updatePreview();
@@ -1037,10 +1076,12 @@
         : '+' + formatNumber(log.distance) + ' km';
       const loadUpText = loadLabel(log.loadUp) || '-';
       const loadDownText = loadLabel(log.loadDown) || '-';
+      const speedText = speedMaxLabel(log);
       const footerText = [
         `積載: 上り${loadUpText} / 下り${loadDownText}`,
-        log.memo || ''
-      ].join(' ').trim();
+        speedText,
+        log.memo ? escapeHtml(log.memo) : ''
+      ].filter(Boolean).join(' ');
       return `
         <div class="log-card">
           <div class="log-header">
@@ -1067,7 +1108,7 @@
               <span class="fuel-badge">${fuelText} L</span>
             </div>
           </div>
-          ${footerText ? `<div class="log-footer">${escapeHtml(footerText)}</div>` : ''}
+          ${footerText ? `<div class="log-footer">${footerText}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -1291,6 +1332,17 @@
     }
     if (v.includes('light') || v.includes('軽')) return 'light';
     return '';
+  }
+  function speedMaxLabel(log) {
+    const parts = [];
+    if (log.speedUpMax) {
+      parts.push('<span class="tag-primary">速度MAX:上り</span>');
+    }
+    if (log.speedDownMax) {
+      parts.push('<span class="tag-primary">速度MAX:下り</span>');
+    }
+    if (parts.length === 0) return '';
+    return parts.join(' ');
   }
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({
