@@ -684,8 +684,13 @@
     tx.objectStore(STORE_NAME).add(data);
     tx.oncomplete = () => {
       resetForm();
-      loadLogs(() => exportCSV());
-      showNotification('記録を追加しました。CSVを保存しました。');
+      loadLogs(() => {
+        exportBackupCSV().then(didBackup => {
+          showNotification(
+            didBackup ? '記録を追加しました。CSVを保存しました。' : '記録を追加しました。'
+          );
+        });
+      });
     };
     tx.onerror = () => showNotification('記録に失敗しました。');
   }
@@ -703,8 +708,13 @@
     };
     tx.oncomplete = () => {
       resetForm();
-      loadLogs();
-      showNotification('記録を更新しました。');
+      loadLogs(() => {
+        exportBackupCSV().then(didBackup => {
+          showNotification(
+            didBackup ? '記録を更新しました。CSVを保存しました。' : '記録を更新しました。'
+          );
+        });
+      });
     };
     tx.onerror = () => showNotification('更新に失敗しました。');
   }
@@ -948,8 +958,13 @@
     const tx = db.transaction([STORE_NAME], 'readwrite');
     tx.objectStore(STORE_NAME).delete(id);
     tx.oncomplete = () => {
-      loadLogs(() => exportCSV());
-      showNotification('削除しました。CSVを保存しました。');
+      loadLogs(() => {
+        exportBackupCSV().then(didBackup => {
+          showNotification(
+            didBackup ? '削除しました。CSVを保存しました。' : '削除しました。'
+          );
+        });
+      });
     };
   }
 
@@ -1258,11 +1273,7 @@
     };
   }
 
-  function exportCSV() {
-    if (allLogs.length === 0) {
-      showNotification('データがありません。');
-      return;
-    }
+  function buildCSVText() {
     let csv =
       '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
     allLogs.forEach(l => {
@@ -1281,16 +1292,53 @@
         `"${(l.memo || '').replace(/"/g, '""')}"`
       ].join(',') + '\n';
     });
-    const blob = new Blob(
+    return csv;
+  }
+  function createCSVBlob() {
+    const csv = buildCSVText();
+    return new Blob(
       [new Uint8Array([0xEF, 0xBB, 0xBF]), csv],
       { type: 'text/csv' }
     );
+  }
+  function exportCSV() {
+    if (allLogs.length === 0) {
+      showNotification('データがありません。');
+      return;
+    }
+    const blob = createCSVBlob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'truck_log.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+  async function exportBackupCSV() {
+    if (allLogs.length === 0) return false;
+    const ok = confirm('CSVバックアップを保存しますか？保存先フォルダーを確認してください。');
+    if (!ok) return false;
+    if (window.showSaveFilePicker) {
+      try {
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        const handle = await window.showSaveFilePicker({
+          suggestedName: `truck_log_${stamp}.csv`,
+          types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(createCSVBlob());
+        await writable.close();
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+    const fallback = confirm(
+      'このブラウザでは保存先フォルダーを選択できません。通常のダウンロードで保存しますか？'
+    );
+    if (!fallback) return false;
+    exportCSV();
+    return true;
   }
 
   function getPendingState() {
