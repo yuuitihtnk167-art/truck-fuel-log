@@ -352,6 +352,22 @@
       grid-template-columns: 140px 1fr;
       align-items: start;
     }
+    .load-group {
+      display: grid;
+      gap: 0.6rem;
+    }
+    .load-item {
+      display: grid;
+      gap: 0.3rem;
+    }
+    .load-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    .toggle-group.inline {
+      grid-template-columns: repeat(3, 1fr);
+    }
     small.hint { font-size: 0.75rem; color: #6b7280; }
     .build-info {
       margin-top: 0.8rem;
@@ -370,7 +386,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('input')">入力</button>
     <button class="tab-btn" onclick="switchTab('list')">履歴</button>
-    <button class="tab-btn" onclick="switchTab('summary')">月次集計</button>
+    <button class="tab-btn" onclick="switchTab('summary')">集計</button>
   </div>
 
   <!-- 入力 -->
@@ -421,9 +437,31 @@
             </div>
           </div>
           <div class="form-group">
-            <label for="memo">メモ</label>
-            <textarea id="memo" rows="2"
-                      placeholder="場所や天候の状況など"></textarea>
+            <label>積載重量</label>
+            <div class="load-group">
+              <div class="load-item">
+                <div class="load-label">上り</div>
+                <div class="toggle-group inline">
+                  <input type="radio" name="loadUp" id="load-up-heavy" value="heavy">
+                  <label class="toggle-btn" for="load-up-heavy">重い</label>
+                  <input type="radio" name="loadUp" id="load-up-medium" value="medium" checked>
+                  <label class="toggle-btn" for="load-up-medium">中</label>
+                  <input type="radio" name="loadUp" id="load-up-light" value="light">
+                  <label class="toggle-btn" for="load-up-light">軽い</label>
+                </div>
+              </div>
+              <div class="load-item">
+                <div class="load-label">下り</div>
+                <div class="toggle-group inline">
+                  <input type="radio" name="loadDown" id="load-down-heavy" value="heavy">
+                  <label class="toggle-btn" for="load-down-heavy">重い</label>
+                  <input type="radio" name="loadDown" id="load-down-medium" value="medium" checked>
+                  <label class="toggle-btn" for="load-down-medium">中</label>
+                  <input type="radio" name="loadDown" id="load-down-light" value="light">
+                  <label class="toggle-btn" for="load-down-light">軽い</label>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <button type="submit" class="btn btn-main" id="submitButton">
@@ -467,7 +505,7 @@
     </div>
   </div>
 
-  <!-- 月次集計 -->
+  <!-- 集計 -->
   <div id="view-summary" class="hidden tab-content">
     <div class="form-group">
       <label for="summaryMonth">表示年月</label>
@@ -476,6 +514,47 @@
     <div id="summary-content">
       <p style="text-align:center; color:#888; padding:2rem 0;">
         年月を選んで集計してください。
+      </p>
+    </div>
+    <div class="log-card">
+      <div style="font-weight:600; margin-bottom:0.4rem;">積載重量で絞り込み</div>
+      <div class="load-group">
+        <div class="load-item">
+          <div class="load-label">上り</div>
+          <div class="toggle-group inline">
+            <input type="checkbox" id="filter-up-heavy"
+                   onchange="updateLoadFilter('up','heavy', this.checked)">
+            <label class="toggle-btn" for="filter-up-heavy">重い</label>
+            <input type="checkbox" id="filter-up-medium"
+                   onchange="updateLoadFilter('up','medium', this.checked)">
+            <label class="toggle-btn" for="filter-up-medium">中</label>
+            <input type="checkbox" id="filter-up-light"
+                   onchange="updateLoadFilter('up','light', this.checked)">
+            <label class="toggle-btn" for="filter-up-light">軽い</label>
+          </div>
+        </div>
+        <div class="load-item">
+          <div class="load-label">下り</div>
+          <div class="toggle-group inline">
+            <input type="checkbox" id="filter-down-heavy"
+                   onchange="updateLoadFilter('down','heavy', this.checked)">
+            <label class="toggle-btn" for="filter-down-heavy">重い</label>
+            <input type="checkbox" id="filter-down-medium"
+                   onchange="updateLoadFilter('down','medium', this.checked)">
+            <label class="toggle-btn" for="filter-down-medium">中</label>
+            <input type="checkbox" id="filter-down-light"
+                   onchange="updateLoadFilter('down','light', this.checked)">
+            <label class="toggle-btn" for="filter-down-light">軽い</label>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:0.4rem; font-size:0.75rem; color:#6b7280;">
+        チェックした項目の運行データを下に表示します。
+      </div>
+    </div>
+    <div id="load-filter-results">
+      <p style="text-align:center; color:#888; padding:1rem 0;">
+        チェックした項目の運行データがここに表示されます。
       </p>
     </div>
   </div>
@@ -490,6 +569,10 @@
   let db;
   let allLogs = [];
   let editingId = null;
+  const summaryFilters = {
+    up: { heavy: false, medium: false, light: false },
+    down: { heavy: false, medium: false, light: false }
+  };
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
@@ -539,12 +622,15 @@
   function handleSubmit(e) {
     e.preventDefault();
     const isFull = document.getElementById('full-yes').checked;
+    const loadUpInput = document.querySelector('input[name="loadUp"]:checked');
+    const loadDownInput = document.querySelector('input[name="loadDown"]:checked');
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
-      memo: document.getElementById('memo').value,
+      loadUp: loadUpInput ? loadUpInput.value : '',
+      loadDown: loadDownInput ? loadDownInput.value : '',
       isFull,
       timestamp: Date.now()
     };
@@ -597,6 +683,8 @@
     document.getElementById('submitButton').textContent = '💾 記録を追加する';
     document.getElementById('fuel-preview-card').classList.remove('visible');
     document.getElementById('full-yes').checked = true;
+    document.getElementById('load-up-medium').checked = true;
+    document.getElementById('load-down-medium').checked = true;
   }
 
   function loadLogs(onLoaded) {
@@ -739,9 +827,15 @@
         : log.isFirst || log.distance <= 0
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
+      const loadUpText = loadLabel(log.loadUp);
+      const loadDownText = loadLabel(log.loadDown);
+      const loadText = (loadUpText || loadDownText)
+        ? `上り:${loadUpText || '-'} / 下り:${loadDownText || '-'}`
+        : '';
       const memoText = [
         log.isFull ? '' : '未満タン',
         log.isAggregated ? '⚠️ 合算あり' : '',
+        loadText,
         log.memo || ''
       ].join(' ').trim();
       container.insertAdjacentHTML('beforeend', `
@@ -792,9 +886,18 @@
     document.getElementById('odometer').value = log.odometer;
     document.getElementById('fuelA').value = log.fuelA || '';
     document.getElementById('fuelB').value = log.fuelB || '';
-    document.getElementById('memo').value = log.memo || '';
     document.getElementById('full-yes').checked = log.isFull !== false;
     document.getElementById('full-no').checked = log.isFull === false;
+    const loadUpValue = log.loadUp || 'medium';
+    const loadDownValue = log.loadDown || 'medium';
+    const loadUpInput = document.querySelector(
+      `input[name="loadUp"][value="${loadUpValue}"]`
+    );
+    const loadDownInput = document.querySelector(
+      `input[name="loadDown"][value="${loadDownValue}"]`
+    );
+    if (loadUpInput) loadUpInput.checked = true;
+    if (loadDownInput) loadDownInput.checked = true;
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
     updatePreview();
@@ -827,11 +930,18 @@
   function renderSummary() {
     const month = document.getElementById('summaryMonth').value;
     const container = document.getElementById('summary-content');
-    if (!month) return;
+    if (!month) {
+      container.innerHTML =
+        '<p style="text-align:center; padding:2rem 0; color:#888;">' +
+        '年月を選んで集計してください。</p>';
+      renderLoadFilterResults();
+      return;
+    }
     const monthly = allLogs.filter(l => (l.date || '').startsWith(month));
     if (monthly.length === 0) {
       container.innerHTML =
         '<p style="text-align:center; padding:2rem 0; color:#888;">データがありません。</p>';
+      renderLoadFilterResults();
       return;
     }
     let dist = 0;
@@ -866,6 +976,102 @@
         </div>
       </div>
     `;
+    renderLoadFilterResults();
+  }
+
+  function updateLoadFilter(group, level, checked) {
+    if (!summaryFilters[group]) return;
+    if (checked) {
+      Object.keys(summaryFilters[group]).forEach(key => {
+        const isSelected = key === level;
+        summaryFilters[group][key] = isSelected;
+        const input = document.getElementById(`filter-${group}-${key}`);
+        if (input) input.checked = isSelected;
+      });
+    } else {
+      summaryFilters[group][level] = false;
+    }
+    renderLoadFilterResults();
+  }
+
+  function renderLoadFilterResults() {
+    const container = document.getElementById('load-filter-results');
+    if (!container) return;
+    const selectedUp = Object.keys(summaryFilters.up)
+      .filter(k => summaryFilters.up[k]);
+    const selectedDown = Object.keys(summaryFilters.down)
+      .filter(k => summaryFilters.down[k]);
+    if (selectedUp.length === 0 && selectedDown.length === 0) {
+      container.innerHTML =
+        '<p style="text-align:center; color:#888; padding:1rem 0;">' +
+        'チェックした項目の運行データがここに表示されます。</p>';
+      return;
+    }
+    if (selectedUp.length === 0 || selectedDown.length === 0) {
+      container.innerHTML =
+        '<p style="text-align:center; color:#888; padding:1rem 0;">' +
+        '上り・下りの両方をチェックしてください。</p>';
+      return;
+    }
+    const filtered = allLogs.filter(log => {
+      const upMatch = selectedUp.includes(log.loadUp);
+      const downMatch = selectedDown.includes(log.loadDown);
+      return upMatch && downMatch;
+    });
+    if (filtered.length === 0) {
+      container.innerHTML =
+        '<p style="text-align:center; color:#888; padding:1rem 0;">' +
+        '該当する運行がありません。</p>';
+      return;
+    }
+    const cards = filtered.slice().reverse().map(log => {
+      const dateStr = log.date || '';
+      const fuelText = log.totalFuel > 0 ? log.totalFuel.toFixed(1) : '-';
+      const effText = log.isFirst || !log.isFull || log.efficiency <= 0
+        ? '-'
+        : log.efficiency.toFixed(2);
+      const distText = !log.isFull
+        ? '(未満タン)'
+        : log.isFirst || log.distance <= 0
+        ? '(初回)'
+        : '+' + formatNumber(log.distance) + ' km';
+      const loadUpText = loadLabel(log.loadUp) || '-';
+      const loadDownText = loadLabel(log.loadDown) || '-';
+      const footerText = [
+        `積載: 上り${loadUpText} / 下り${loadDownText}`,
+        log.memo || ''
+      ].join(' ').trim();
+      return `
+        <div class="log-card">
+          <div class="log-header">
+            <span class="log-date">${escapeHtml(dateStr)}</span>
+          </div>
+          <div class="log-main-row">
+            <div>
+              <span style="font-size:0.8rem; color:#6b7280;">今回燃費</span><br>
+              <span class="log-km">${effText}</span>
+              <span style="font-size:0.85rem;">km/L</span>
+            </div>
+            <div style="text-align:right;">
+              <span style="font-size:0.8rem; color:#6b7280;">走行距離</span><br>
+              <span style="font-weight:600;">${distText}</span>
+            </div>
+          </div>
+          <div class="log-details">
+            <div class="log-stat-item">
+              <span>積算距離</span>
+              ${formatNumber(log.odometer)} km
+            </div>
+            <div class="log-stat-item">
+              <span>給油合計</span>
+              <span class="fuel-badge">${fuelText} L</span>
+            </div>
+          </div>
+          ${footerText ? `<div class="log-footer">${escapeHtml(footerText)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+    container.innerHTML = cards;
   }
 
   function switchTab(tab) {
@@ -915,6 +1121,8 @@
     let fuelBIdx = -1;
     let fuelTotalIdx = -1;
     let memoIdx = -1;
+    let loadUpIdx = -1;
+    let loadDownIdx = -1;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
@@ -924,6 +1132,8 @@
       if (/(給油B|給油\s*B)/i.test(name)) fuelBIdx = i;
       if (/(給油量|給油合計|合計燃料|燃料|L)/i.test(name)) fuelTotalIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+      if (/(上り積載|上り重量|上り荷|上り)/i.test(name)) loadUpIdx = i;
+      if (/(下り積載|下り重量|下り荷|下り)/i.test(name)) loadDownIdx = i;
     });
     if (fuelAIdx < 0 && fuelTotalIdx >= 0) fuelAIdx = fuelTotalIdx;
     if (fuelAIdx < 0) fuelAIdx = 2;
@@ -941,12 +1151,16 @@
       const fuelBStr = fuelBIdx >= 0
         ? toHalfWidth(cols[fuelBIdx] || '').replace(/,/g, '')
         : '';
+      const loadUpStr = loadUpIdx >= 0 ? cols[loadUpIdx] : '';
+      const loadDownStr = loadDownIdx >= 0 ? cols[loadDownIdx] : '';
       const odo = parseFloat(odoStr);
       const csvDistance = parseFloat(distStr);
       const fuelA = parseFloat(fuelAStr);
       const fuelB = parseFloat(fuelBStr) || 0;
+      const loadUp = parseLoadValue(loadUpStr);
+      const loadDown = parseLoadValue(loadDownStr);
       if (!date || isNaN(odo) || isNaN(fuelA)) continue;
-      records.push({
+      const record = {
         date,
         odometer: odo,
         fuelA,
@@ -955,7 +1169,10 @@
         csvDistance: Number.isFinite(csvDistance) ? csvDistance : undefined,
         isFull: true,
         timestamp: Date.now()
-      });
+      };
+      if (loadUp) record.loadUp = loadUp;
+      if (loadDown) record.loadDown = loadDown;
+      records.push(record);
     }
     if (records.length === 0) {
       showNotification('取り込める行がありませんでした。');
@@ -990,7 +1207,7 @@
       return;
     }
     let csv =
-      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,メモ\n';
+      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上り積載,下り積載,メモ\n';
     allLogs.forEach(l => {
       csv += [
         l.date,
@@ -1000,6 +1217,8 @@
         l.fuelB || 0,
         l.totalFuel || 0,
         l.isFirst ? 0 : l.efficiency.toFixed(2),
+        loadLabel(l.loadUp),
+        loadLabel(l.loadDown),
         `"${(l.memo || '').replace(/"/g, '""')}"`
       ].join(',') + '\n';
     });
@@ -1056,6 +1275,22 @@
   }
   function cleanCell(c) {
     return c.replace(/^"|"$/g, '').trim();
+  }
+  function loadLabel(value) {
+    if (value === 'heavy') return '重い';
+    if (value === 'medium') return '中';
+    if (value === 'light') return '軽い';
+    return '';
+  }
+  function parseLoadValue(value) {
+    const v = toHalfWidth(value || '').trim().toLowerCase();
+    if (!v) return '';
+    if (v.includes('heavy') || v.includes('重')) return 'heavy';
+    if (v.includes('medium') || v.includes('middle') || v.includes('中')) {
+      return 'medium';
+    }
+    if (v.includes('light') || v.includes('軽')) return 'light';
+    return '';
   }
   function escapeHtml(s) {
     return (s || '').replace(/[&<>"']/g, c => ({
