@@ -1175,10 +1175,16 @@
       if (/(給油B|給油\s*B)/i.test(name)) fuelBIdx = i;
       if (/(給油量|給油合計|合計燃料|燃料|L)/i.test(name)) fuelTotalIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
-      if (/(上り積載|上り重量|上り荷|上り)/i.test(name)) loadUpIdx = i;
-      if (/(下り積載|下り重量|下り荷|下り)/i.test(name)) loadDownIdx = i;
+      if (/(上り積載|上り重量|上り荷)/i.test(name)) loadUpIdx = i;
+      if (/(下り積載|下り重量|下り荷)/i.test(name)) loadDownIdx = i;
       if (/(上り速度|max上り|上りmax|上り速度max|上り速度MAX)/i.test(name)) speedUpIdx = i;
       if (/(下り速度|max下り|下りmax|下り速度max|下り速度MAX)/i.test(name)) speedDownIdx = i;
+      if (loadUpIdx < 0 && /上り/i.test(name) && !/(速度|max)/i.test(name)) {
+        loadUpIdx = i;
+      }
+      if (loadDownIdx < 0 && /下り/i.test(name) && !/(速度|max)/i.test(name)) {
+        loadDownIdx = i;
+      }
     });
     if (fuelAIdx < 0 && fuelTotalIdx >= 0) fuelAIdx = fuelTotalIdx;
     if (fuelAIdx < 0) fuelAIdx = 2;
