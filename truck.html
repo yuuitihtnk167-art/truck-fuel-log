@@ -84,7 +84,7 @@
       color: #374151;
       font-size: 0.9rem;
     }
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       padding: 0.7rem;
       border: 1px solid #d1d5db;
@@ -99,7 +99,7 @@
       font-size: 0.9rem;
       background: #f9fafb;
     }
-    input:focus, textarea:focus {
+    input:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--secondary-color);
       box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
@@ -441,6 +441,16 @@
                    placeholder="サブタンク" inputmode="decimal">
           </div>
         </div>
+        <div class="form-group">
+          <label for="route">ルート</label>
+          <select id="route" required>
+            <option value="">選択してください</option>
+            <option value="新名神－新東名">新名神－新東名</option>
+            <option value="名神ー新東名">名神ー新東名</option>
+            <option value="名神－中央">名神－中央</option>
+            <option value="新名神－中央">新名神－中央</option>
+          </select>
+        </div>
         <div class="form-row memo-row">
           <div class="form-group">
             <label>満タン</label>
@@ -541,7 +551,7 @@
       </p>
     </div>
     <div class="log-card">
-      <div style="font-weight:600; margin-bottom:0.4rem;">積載重量で絞り込み</div>
+      <div style="font-weight:600; margin-bottom:0.4rem;">絞り込み</div>
       <div class="load-group">
         <div class="load-item">
           <div class="load-label">上り</div>
@@ -572,13 +582,23 @@
           </div>
         </div>
       </div>
+      <div class="form-group" style="margin-top:0.6rem;">
+        <label for="filter-route">ルート</label>
+        <select id="filter-route" onchange="updateRouteFilter(this.value)">
+          <option value="">すべて</option>
+          <option value="新名神－新東名">新名神－新東名</option>
+          <option value="名神ー新東名">名神ー新東名</option>
+          <option value="名神－中央">名神－中央</option>
+          <option value="新名神－中央">新名神－中央</option>
+        </select>
+      </div>
       <div style="margin-top:0.4rem; font-size:0.75rem; color:#6b7280;">
-        チェックした項目の運行データを下に表示します。
+        選択した条件の運行データを下に表示します。
       </div>
     </div>
     <div id="load-filter-results">
       <p style="text-align:center; color:#888; padding:1rem 0;">
-        チェックした項目の運行データがここに表示されます。
+        選択した条件の運行データがここに表示されます。
       </p>
     </div>
   </div>
@@ -597,6 +617,13 @@
     up: { heavy: false, medium: false, light: false },
     down: { heavy: false, medium: false, light: false }
   };
+  const ROUTE_OPTIONS = [
+    '新名神－新東名',
+    '名神ー新東名',
+    '名神－中央',
+    '新名神－中央'
+  ];
+  let summaryRoute = '';
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
@@ -655,9 +682,12 @@
     const loadDownInput = document.querySelector('input[name="loadDown"]:checked');
     const speedUpMax = document.getElementById('speed-up-max').checked;
     const speedDownMax = document.getElementById('speed-down-max').checked;
+    const routeInput = document.getElementById('route').value;
+    const route = normalizeRouteValue(routeInput);
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
+      route,
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
       loadUp: loadUpInput ? loadUpInput.value : '',
@@ -669,6 +699,10 @@
     };
     if (!data.date || isNaN(data.odometer)) {
       showNotification('日付と積算距離は必須です。');
+      return;
+    }
+    if (!route) {
+      showNotification('ルートを選択してください。');
       return;
     }
     if (editingId !== null) {
@@ -726,6 +760,7 @@
     document.getElementById('submitButton').textContent = '💾 記録を追加する';
     document.getElementById('fuel-preview-card').classList.remove('visible');
     document.getElementById('full-yes').checked = true;
+    document.getElementById('route').value = '';
     document.getElementById('load-up-medium').checked = true;
     document.getElementById('load-down-medium').checked = true;
     document.getElementById('speed-up-max').checked = false;
@@ -874,6 +909,7 @@
         : '+' + formatNumber(log.distance) + ' km';
       const loadUpText = loadLabel(log.loadUp);
       const loadDownText = loadLabel(log.loadDown);
+      const routeText = routeLabel(log.route);
       const loadText = (loadUpText || loadDownText)
         ? `上り:${loadUpText || '-'} / 下り:${loadDownText || '-'}`
         : '';
@@ -918,6 +954,10 @@
               <span>給油合計</span>
               <span class="fuel-badge">${fuelText} L</span>
             </div>
+            <div class="log-stat-item">
+              <span>ルート</span>
+              ${routeText ? escapeHtml(routeText) : '-'}
+            </div>
           </div>
           ${memoText ? `<div class="log-footer">${memoText}</div>` : ''}
         </div>
@@ -935,6 +975,11 @@
     document.getElementById('fuelB').value = log.fuelB || '';
     document.getElementById('full-yes').checked = log.isFull !== false;
     document.getElementById('full-no').checked = log.isFull === false;
+    const routeSelect = document.getElementById('route');
+    const routeValue = normalizeRouteValue(log.route || '');
+    if (routeSelect) {
+      routeSelect.value = ROUTE_OPTIONS.includes(routeValue) ? routeValue : '';
+    }
     const loadUpValue = log.loadUp || 'medium';
     const loadDownValue = log.loadDown || 'medium';
     const loadUpInput = document.querySelector(
@@ -1048,6 +1093,11 @@
     renderLoadFilterResults();
   }
 
+  function updateRouteFilter(value) {
+    summaryRoute = normalizeRouteValue(value);
+    renderLoadFilterResults();
+  }
+
   function renderLoadFilterResults() {
     const container = document.getElementById('load-filter-results');
     if (!container) return;
@@ -1055,22 +1105,28 @@
       .filter(k => summaryFilters.up[k]);
     const selectedDown = Object.keys(summaryFilters.down)
       .filter(k => summaryFilters.down[k]);
-    if (selectedUp.length === 0 && selectedDown.length === 0) {
+    const hasRouteFilter = !!summaryRoute;
+    const hasLoadSelection = selectedUp.length > 0 || selectedDown.length > 0;
+    if (!hasLoadSelection && !hasRouteFilter) {
       container.innerHTML =
         '<p style="text-align:center; color:#888; padding:1rem 0;">' +
-        'チェックした項目の運行データがここに表示されます。</p>';
+        '選択した条件の運行データがここに表示されます。</p>';
       return;
     }
-    if (selectedUp.length === 0 || selectedDown.length === 0) {
+    if (hasLoadSelection && (selectedUp.length === 0 || selectedDown.length === 0)) {
       container.innerHTML =
         '<p style="text-align:center; color:#888; padding:1rem 0;">' +
         '上り・下りの両方をチェックしてください。</p>';
       return;
     }
+    const useLoadFilter = selectedUp.length > 0 && selectedDown.length > 0;
     const filtered = allLogs.filter(log => {
       const upMatch = selectedUp.includes(log.loadUp);
       const downMatch = selectedDown.includes(log.loadDown);
-      return upMatch && downMatch;
+      const routeMatch =
+        !hasRouteFilter || normalizeRouteValue(log.route) === summaryRoute;
+      const loadMatch = !useLoadFilter || (upMatch && downMatch);
+      return loadMatch && routeMatch;
     });
     if (filtered.length === 0) {
       container.innerHTML =
@@ -1091,6 +1147,7 @@
         : '+' + formatNumber(log.distance) + ' km';
       const loadUpText = loadLabel(log.loadUp) || '-';
       const loadDownText = loadLabel(log.loadDown) || '-';
+      const routeText = routeLabel(log.route);
       const speedText = speedMaxLabel(log);
       const footerText = [
         `積載: 上り${loadUpText} / 下り${loadDownText}`,
@@ -1121,6 +1178,10 @@
             <div class="log-stat-item">
               <span>給油合計</span>
               <span class="fuel-badge">${fuelText} L</span>
+            </div>
+            <div class="log-stat-item">
+              <span>ルート</span>
+              ${routeText ? escapeHtml(routeText) : '-'}
             </div>
           </div>
           ${footerText ? `<div class="log-footer">${footerText}</div>` : ''}
@@ -1177,6 +1238,7 @@
     let fuelBIdx = -1;
     let fuelTotalIdx = -1;
     let memoIdx = -1;
+    let routeIdx = -1;
     let loadUpIdx = -1;
     let loadDownIdx = -1;
     let speedUpIdx = -1;
@@ -1190,6 +1252,7 @@
       if (/(給油B|給油\s*B)/i.test(name)) fuelBIdx = i;
       if (/(給油量|給油合計|合計燃料|燃料|L)/i.test(name)) fuelTotalIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+      if (/(ルート|route)/i.test(name)) routeIdx = i;
       if (/(上り積載|上り重量|上り荷)/i.test(name)) loadUpIdx = i;
       if (/(下り積載|下り重量|下り荷)/i.test(name)) loadDownIdx = i;
       if (/(上り速度|max上り|上りmax|上り速度max|上り速度MAX)/i.test(name)) speedUpIdx = i;
@@ -1217,6 +1280,7 @@
       const fuelBStr = fuelBIdx >= 0
         ? toHalfWidth(cols[fuelBIdx] || '').replace(/,/g, '')
         : '';
+      const routeStr = routeIdx >= 0 ? cols[routeIdx] : '';
       const loadUpStr = loadUpIdx >= 0 ? cols[loadUpIdx] : '';
       const loadDownStr = loadDownIdx >= 0 ? cols[loadDownIdx] : '';
       const speedUpStr = speedUpIdx >= 0 ? cols[speedUpIdx] : '';
@@ -1225,6 +1289,7 @@
       const csvDistance = parseFloat(distStr);
       const fuelA = parseFloat(fuelAStr);
       const fuelB = parseFloat(fuelBStr) || 0;
+      const route = normalizeRouteValue(routeStr);
       const loadUp = parseLoadValue(loadUpStr);
       const loadDown = parseLoadValue(loadDownStr);
       const speedUpMax = parseBoolCell(speedUpStr);
@@ -1240,6 +1305,7 @@
         isFull: true,
         timestamp: Date.now()
       };
+      if (route) record.route = route;
       if (loadUp) record.loadUp = loadUp;
       if (loadDown) record.loadDown = loadDown;
       if (speedUpMax) record.speedUpMax = true;
@@ -1275,7 +1341,7 @@
 
   function buildCSVText() {
     let csv =
-      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
+      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,ルート,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
     allLogs.forEach(l => {
       csv += [
         l.date,
@@ -1285,6 +1351,7 @@
         l.fuelB || 0,
         l.totalFuel || 0,
         l.isFirst ? 0 : l.efficiency.toFixed(2),
+        routeLabel(l.route),
         loadLabel(l.loadUp),
         loadLabel(l.loadDown),
         l.speedUpMax ? '1' : '',
@@ -1392,6 +1459,22 @@
     }
     if (v.includes('速度max') || v.includes('max')) return true;
     return false;
+  }
+  function normalizeRouteValue(value) {
+    const raw = (value || '').trim();
+    if (!raw) return '';
+    const compact = raw.replace(/\s+/g, '');
+    const normalized = compact.replace(/[‐‑‒–—―－ー-]/g, '-');
+    if (normalized === '新名神-新東名') return '新名神－新東名';
+    if (normalized === '名神-新東名') return '名神ー新東名';
+    if (normalized === '名神-中央') return '名神－中央';
+    if (normalized === '新名神-中央') return '新名神－中央';
+    return raw;
+  }
+  function routeLabel(value) {
+    const normalized = normalizeRouteValue(value);
+    if (ROUTE_OPTIONS.includes(normalized)) return normalized;
+    return normalized || '';
   }
   function loadLabel(value) {
     if (value === 'heavy') return '重い';
