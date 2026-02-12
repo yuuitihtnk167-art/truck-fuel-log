@@ -441,15 +441,27 @@
                    placeholder="サブタンク" inputmode="decimal">
           </div>
         </div>
-        <div class="form-group">
-          <label for="route">ルート</label>
-          <select id="route" required>
-            <option value="">選択してください</option>
-            <option value="新名神－新東名">新名神－新東名</option>
-            <option value="名神ー新東名">名神ー新東名</option>
-            <option value="名神－中央">名神－中央</option>
-            <option value="新名神－中央">新名神－中央</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="route-up">ルート（上り）</label>
+            <select id="route-up" required>
+              <option value="">選択してください</option>
+              <option value="新名神－新東名">新名神－新東名</option>
+              <option value="名神ー新東名">名神ー新東名</option>
+              <option value="名神－中央">名神－中央</option>
+              <option value="新名神－中央">新名神－中央</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="route-down">ルート（下り）</label>
+            <select id="route-down" required>
+              <option value="">選択してください</option>
+              <option value="新東名ー新名神">新東名ー新名神</option>
+              <option value="新東名ー名神">新東名ー名神</option>
+              <option value="中央ー名神">中央ー名神</option>
+              <option value="中央－新名神">中央－新名神</option>
+            </select>
+          </div>
         </div>
         <div class="form-row memo-row">
           <div class="form-group">
@@ -582,15 +594,27 @@
           </div>
         </div>
       </div>
-      <div class="form-group" style="margin-top:0.6rem;">
-        <label for="filter-route">ルート</label>
-        <select id="filter-route" onchange="updateRouteFilter(this.value)">
-          <option value="">すべて</option>
-          <option value="新名神－新東名">新名神－新東名</option>
-          <option value="名神ー新東名">名神ー新東名</option>
-          <option value="名神－中央">名神－中央</option>
-          <option value="新名神－中央">新名神－中央</option>
-        </select>
+      <div class="form-row" style="margin-top:0.6rem;">
+        <div class="form-group">
+          <label for="filter-route-up">ルート（上り）</label>
+          <select id="filter-route-up" onchange="updateRouteFilter('up', this.value)">
+            <option value="">すべて</option>
+            <option value="新名神－新東名">新名神－新東名</option>
+            <option value="名神ー新東名">名神ー新東名</option>
+            <option value="名神－中央">名神－中央</option>
+            <option value="新名神－中央">新名神－中央</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="filter-route-down">ルート（下り）</label>
+          <select id="filter-route-down" onchange="updateRouteFilter('down', this.value)">
+            <option value="">すべて</option>
+            <option value="新東名ー新名神">新東名ー新名神</option>
+            <option value="新東名ー名神">新東名ー名神</option>
+            <option value="中央ー名神">中央ー名神</option>
+            <option value="中央－新名神">中央－新名神</option>
+          </select>
+        </div>
       </div>
       <div style="margin-top:0.4rem; font-size:0.75rem; color:#6b7280;">
         選択した条件の運行データを下に表示します。
@@ -617,13 +641,32 @@
     up: { heavy: false, medium: false, light: false },
     down: { heavy: false, medium: false, light: false }
   };
-  const ROUTE_OPTIONS = [
+  const ROUTE_UP_OPTIONS = [
     '新名神－新東名',
     '名神ー新東名',
     '名神－中央',
     '新名神－中央'
   ];
-  let summaryRoute = '';
+  const ROUTE_DOWN_OPTIONS = [
+    '新東名ー新名神',
+    '新東名ー名神',
+    '中央ー名神',
+    '中央－新名神'
+  ];
+  const ROUTE_ALL_OPTIONS = [...ROUTE_UP_OPTIONS, ...ROUTE_DOWN_OPTIONS];
+  const ROUTE_PAIR_MAP = {
+    '新名神－新東名': '新東名ー新名神',
+    '名神ー新東名': '新東名ー名神',
+    '名神－中央': '中央ー名神',
+    '新名神－中央': '中央－新名神'
+  };
+  const ROUTE_PAIR_REVERSE_MAP = {
+    '新東名ー新名神': '新名神－新東名',
+    '新東名ー名神': '名神ー新東名',
+    '中央ー名神': '名神－中央',
+    '中央－新名神': '新名神－中央'
+  };
+  const summaryRoute = { up: '', down: '' };
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
@@ -682,12 +725,15 @@
     const loadDownInput = document.querySelector('input[name="loadDown"]:checked');
     const speedUpMax = document.getElementById('speed-up-max').checked;
     const speedDownMax = document.getElementById('speed-down-max').checked;
-    const routeInput = document.getElementById('route').value;
-    const route = normalizeRouteValue(routeInput);
+    const routeUpInput = document.getElementById('route-up').value;
+    const routeDownInput = document.getElementById('route-down').value;
+    const routeUp = normalizeRouteValue(routeUpInput);
+    const routeDown = normalizeRouteValue(routeDownInput);
     const data = {
       date: document.getElementById('date').value,
       odometer: parseFloat(document.getElementById('odometer').value),
-      route,
+      routeUp,
+      routeDown,
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
       loadUp: loadUpInput ? loadUpInput.value : '',
@@ -701,8 +747,8 @@
       showNotification('日付と積算距離は必須です。');
       return;
     }
-    if (!route) {
-      showNotification('ルートを選択してください。');
+    if (!routeUp || !routeDown) {
+      showNotification('上りと下りのルートを選択してください。');
       return;
     }
     if (editingId !== null) {
@@ -760,7 +806,8 @@
     document.getElementById('submitButton').textContent = '💾 記録を追加する';
     document.getElementById('fuel-preview-card').classList.remove('visible');
     document.getElementById('full-yes').checked = true;
-    document.getElementById('route').value = '';
+    document.getElementById('route-up').value = '';
+    document.getElementById('route-down').value = '';
     document.getElementById('load-up-medium').checked = true;
     document.getElementById('load-down-medium').checked = true;
     document.getElementById('speed-up-max').checked = false;
@@ -909,7 +956,7 @@
         : '+' + formatNumber(log.distance) + ' km';
       const loadUpText = loadLabel(log.loadUp);
       const loadDownText = loadLabel(log.loadDown);
-      const routeText = routeLabel(log.route);
+      const routeText = routePairLabel(getRoutePair(log));
       const loadText = (loadUpText || loadDownText)
         ? `上り:${loadUpText || '-'} / 下り:${loadDownText || '-'}`
         : '';
@@ -975,10 +1022,18 @@
     document.getElementById('fuelB').value = log.fuelB || '';
     document.getElementById('full-yes').checked = log.isFull !== false;
     document.getElementById('full-no').checked = log.isFull === false;
-    const routeSelect = document.getElementById('route');
-    const routeValue = normalizeRouteValue(log.route || '');
-    if (routeSelect) {
-      routeSelect.value = ROUTE_OPTIONS.includes(routeValue) ? routeValue : '';
+    const routeUpSelect = document.getElementById('route-up');
+    const routeDownSelect = document.getElementById('route-down');
+    const routePair = getRoutePair(log);
+    if (routeUpSelect) {
+      routeUpSelect.value = ROUTE_UP_OPTIONS.includes(routePair.up)
+        ? routePair.up
+        : '';
+    }
+    if (routeDownSelect) {
+      routeDownSelect.value = ROUTE_DOWN_OPTIONS.includes(routePair.down)
+        ? routePair.down
+        : '';
     }
     const loadUpValue = log.loadUp || 'medium';
     const loadDownValue = log.loadDown || 'medium';
@@ -1093,8 +1148,9 @@
     renderLoadFilterResults();
   }
 
-  function updateRouteFilter(value) {
-    summaryRoute = normalizeRouteValue(value);
+  function updateRouteFilter(direction, value) {
+    if (!Object.prototype.hasOwnProperty.call(summaryRoute, direction)) return;
+    summaryRoute[direction] = normalizeRouteValue(value);
     renderLoadFilterResults();
   }
 
@@ -1105,7 +1161,7 @@
       .filter(k => summaryFilters.up[k]);
     const selectedDown = Object.keys(summaryFilters.down)
       .filter(k => summaryFilters.down[k]);
-    const hasRouteFilter = !!summaryRoute;
+    const hasRouteFilter = !!summaryRoute.up || !!summaryRoute.down;
     const hasLoadSelection = selectedUp.length > 0 || selectedDown.length > 0;
     if (!hasLoadSelection && !hasRouteFilter) {
       container.innerHTML =
@@ -1123,8 +1179,11 @@
     const filtered = allLogs.filter(log => {
       const upMatch = selectedUp.includes(log.loadUp);
       const downMatch = selectedDown.includes(log.loadDown);
-      const routeMatch =
-        !hasRouteFilter || normalizeRouteValue(log.route) === summaryRoute;
+      const routePair = getRoutePair(log);
+      const routeUpMatch = !summaryRoute.up || routePair.up === summaryRoute.up;
+      const routeDownMatch =
+        !summaryRoute.down || routePair.down === summaryRoute.down;
+      const routeMatch = !hasRouteFilter || (routeUpMatch && routeDownMatch);
       const loadMatch = !useLoadFilter || (upMatch && downMatch);
       return loadMatch && routeMatch;
     });
@@ -1147,7 +1206,7 @@
         : '+' + formatNumber(log.distance) + ' km';
       const loadUpText = loadLabel(log.loadUp) || '-';
       const loadDownText = loadLabel(log.loadDown) || '-';
-      const routeText = routeLabel(log.route);
+      const routeText = routePairLabel(getRoutePair(log));
       const speedText = speedMaxLabel(log);
       const footerText = [
         `積載: 上り${loadUpText} / 下り${loadDownText}`,
@@ -1238,6 +1297,8 @@
     let fuelBIdx = -1;
     let fuelTotalIdx = -1;
     let memoIdx = -1;
+    let routeUpIdx = -1;
+    let routeDownIdx = -1;
     let routeIdx = -1;
     let loadUpIdx = -1;
     let loadDownIdx = -1;
@@ -1252,15 +1313,17 @@
       if (/(給油B|給油\s*B)/i.test(name)) fuelBIdx = i;
       if (/(給油量|給油合計|合計燃料|燃料|L)/i.test(name)) fuelTotalIdx = i;
       if (/(メモ|備考|note)/i.test(name)) memoIdx = i;
+      if (/(上り.*ルート|ルート.*上り)/i.test(name)) { routeUpIdx = i; return; }
+      if (/(下り.*ルート|ルート.*下り)/i.test(name)) { routeDownIdx = i; return; }
       if (/(ルート|route)/i.test(name)) routeIdx = i;
       if (/(上り積載|上り重量|上り荷)/i.test(name)) loadUpIdx = i;
       if (/(下り積載|下り重量|下り荷)/i.test(name)) loadDownIdx = i;
       if (/(上り速度|max上り|上りmax|上り速度max|上り速度MAX)/i.test(name)) speedUpIdx = i;
       if (/(下り速度|max下り|下りmax|下り速度max|下り速度MAX)/i.test(name)) speedDownIdx = i;
-      if (loadUpIdx < 0 && /上り/i.test(name) && !/(速度|max)/i.test(name)) {
+      if (loadUpIdx < 0 && /上り/i.test(name) && !/(速度|max|ルート|route)/i.test(name)) {
         loadUpIdx = i;
       }
-      if (loadDownIdx < 0 && /下り/i.test(name) && !/(速度|max)/i.test(name)) {
+      if (loadDownIdx < 0 && /下り/i.test(name) && !/(速度|max|ルート|route)/i.test(name)) {
         loadDownIdx = i;
       }
     });
@@ -1280,6 +1343,8 @@
       const fuelBStr = fuelBIdx >= 0
         ? toHalfWidth(cols[fuelBIdx] || '').replace(/,/g, '')
         : '';
+      const routeUpStr = routeUpIdx >= 0 ? cols[routeUpIdx] : '';
+      const routeDownStr = routeDownIdx >= 0 ? cols[routeDownIdx] : '';
       const routeStr = routeIdx >= 0 ? cols[routeIdx] : '';
       const loadUpStr = loadUpIdx >= 0 ? cols[loadUpIdx] : '';
       const loadDownStr = loadDownIdx >= 0 ? cols[loadDownIdx] : '';
@@ -1289,7 +1354,17 @@
       const csvDistance = parseFloat(distStr);
       const fuelA = parseFloat(fuelAStr);
       const fuelB = parseFloat(fuelBStr) || 0;
-      const route = normalizeRouteValue(routeStr);
+      const routeUp = normalizeRouteValue(routeUpStr);
+      const routeDown = normalizeRouteValue(routeDownStr);
+      const routeFallback = normalizeRouteValue(routeStr);
+      let finalRouteUp = routeUp || routeFallback;
+      let finalRouteDown = routeDown;
+      if (!finalRouteDown && finalRouteUp) {
+        finalRouteDown = deriveDownRouteFromUp(finalRouteUp);
+      }
+      if (!finalRouteUp && finalRouteDown) {
+        finalRouteUp = deriveUpRouteFromDown(finalRouteDown);
+      }
       const loadUp = parseLoadValue(loadUpStr);
       const loadDown = parseLoadValue(loadDownStr);
       const speedUpMax = parseBoolCell(speedUpStr);
@@ -1305,7 +1380,8 @@
         isFull: true,
         timestamp: Date.now()
       };
-      if (route) record.route = route;
+      if (finalRouteUp) record.routeUp = finalRouteUp;
+      if (finalRouteDown) record.routeDown = finalRouteDown;
       if (loadUp) record.loadUp = loadUp;
       if (loadDown) record.loadDown = loadDown;
       if (speedUpMax) record.speedUpMax = true;
@@ -1341,8 +1417,9 @@
 
   function buildCSVText() {
     let csv =
-      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,ルート,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
+      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上りルート,下りルート,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
     allLogs.forEach(l => {
+      const routePair = getRoutePair(l);
       csv += [
         l.date,
         l.odometer,
@@ -1351,7 +1428,8 @@
         l.fuelB || 0,
         l.totalFuel || 0,
         l.isFirst ? 0 : l.efficiency.toFixed(2),
-        routeLabel(l.route),
+        routeLabel(routePair.up),
+        routeLabel(routePair.down),
         loadLabel(l.loadUp),
         loadLabel(l.loadDown),
         l.speedUpMax ? '1' : '',
@@ -1469,12 +1547,39 @@
     if (normalized === '名神-新東名') return '名神ー新東名';
     if (normalized === '名神-中央') return '名神－中央';
     if (normalized === '新名神-中央') return '新名神－中央';
+    if (normalized === '新東名-新名神') return '新東名ー新名神';
+    if (normalized === '新東名-名神') return '新東名ー名神';
+    if (normalized === '中央-名神') return '中央ー名神';
+    if (normalized === '中央-新名神') return '中央－新名神';
     return raw;
   }
   function routeLabel(value) {
     const normalized = normalizeRouteValue(value);
-    if (ROUTE_OPTIONS.includes(normalized)) return normalized;
+    if (ROUTE_ALL_OPTIONS.includes(normalized)) return normalized;
     return normalized || '';
+  }
+  function deriveDownRouteFromUp(value) {
+    const normalized = normalizeRouteValue(value);
+    return ROUTE_PAIR_MAP[normalized] || '';
+  }
+  function deriveUpRouteFromDown(value) {
+    const normalized = normalizeRouteValue(value);
+    return ROUTE_PAIR_REVERSE_MAP[normalized] || '';
+  }
+  function getRoutePair(log) {
+    const upRaw = log.routeUp || log.route || '';
+    const downRaw = log.routeDown || '';
+    let up = normalizeRouteValue(upRaw);
+    let down = normalizeRouteValue(downRaw);
+    if (!up && down) up = deriveUpRouteFromDown(down);
+    if (!down && up) down = deriveDownRouteFromUp(up);
+    return { up, down };
+  }
+  function routePairLabel(pair) {
+    const upLabel = routeLabel(pair.up);
+    const downLabel = routeLabel(pair.down);
+    if (!upLabel && !downLabel) return '';
+    return `上り:${upLabel || '-'} / 下り:${downLabel || '-'}`;
   }
   function loadLabel(value) {
     if (value === 'heavy') return '重い';
