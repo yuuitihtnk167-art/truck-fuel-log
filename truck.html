@@ -348,28 +348,80 @@
       grid-template-columns: 1fr 1fr;
       gap: 0.7rem;
     }
-    .memo-row {
-      grid-template-columns: 140px 1fr;
+    .settings-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.7rem;
       align-items: start;
+    }
+    .settings-row .form-group {
+      margin-bottom: 0;
+    }
+    .settings-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.6rem;
+    }
+    .settings-card > label {
+      margin-bottom: 0.45rem;
     }
     .load-group {
       display: grid;
-      gap: 0.6rem;
+      gap: 0.45rem;
     }
     .load-item {
       display: grid;
-      gap: 0.3rem;
+      gap: 0.25rem;
     }
     .load-label {
       font-size: 0.8rem;
       font-weight: 600;
       color: #6b7280;
     }
-    .toggle-group.inline {
-      grid-template-columns: repeat(3, 1fr);
+    .unit-select {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
     }
-    .sub-section {
-      margin-top: 0.5rem;
+    .unit-select select {
+      width: 100%;
+      margin: 0;
+    }
+    .unit-suffix {
+      min-width: 2.2em;
+      text-align: right;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4b5563;
+      white-space: nowrap;
+    }
+    .toggle-group.inline-two {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .summary-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+    .summary-filter-card {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.6rem;
+    }
+    .summary-filter-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 0.35rem;
+    }
+    @media (max-width: 640px) {
+      .form-row,
+      .settings-row,
+      .summary-filter-grid {
+        grid-template-columns: 1fr;
+      }
     }
     .tag-primary {
       display: inline-flex;
@@ -460,11 +512,13 @@
               <option value="新東名ー名神">新東名ー名神</option>
               <option value="中央ー名神">中央ー名神</option>
               <option value="中央－新名神">中央－新名神</option>
+              <option value="箱根ー新東名－新名神">箱根ー新東名－新名神</option>
+              <option value="箱根ー新東名ー名神">箱根ー新東名ー名神</option>
             </select>
           </div>
         </div>
-        <div class="form-row memo-row">
-          <div class="form-group">
+        <div class="settings-row">
+          <div class="form-group settings-card">
             <label>満タン</label>
             <div class="toggle-group">
               <input type="radio" name="fullness" id="full-yes" value="full" checked>
@@ -472,41 +526,63 @@
               <input type="radio" name="fullness" id="full-no" value="partial">
               <label class="toggle-btn" for="full-no">未満タン</label>
             </div>
-            <div class="sub-section">
-              <div class="load-label">速度MAX</div>
-              <div class="toggle-group inline">
-                <input type="checkbox" id="speed-up-max">
-                <label class="toggle-btn" for="speed-up-max">上り</label>
-                <input type="checkbox" id="speed-down-max">
-                <label class="toggle-btn" for="speed-down-max">下り</label>
-              </div>
-            </div>
           </div>
-          <div class="form-group">
+          <div class="form-group settings-card">
             <label>積載重量</label>
             <div class="load-group">
               <div class="load-item">
                 <div class="load-label">上り</div>
-                <div class="toggle-group inline">
-                  <input type="radio" name="loadUp" id="load-up-heavy" value="heavy">
-                  <label class="toggle-btn" for="load-up-heavy">重い</label>
-                  <input type="radio" name="loadUp" id="load-up-medium" value="medium" checked>
-                  <label class="toggle-btn" for="load-up-medium">中</label>
-                  <input type="radio" name="loadUp" id="load-up-light" value="light">
-                  <label class="toggle-btn" for="load-up-light">軽い</label>
+                <div class="unit-select">
+                  <select id="load-up">
+                    <option value="0" selected>0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                  </select>
+                  <span class="unit-suffix">トン</span>
                 </div>
               </div>
               <div class="load-item">
                 <div class="load-label">下り</div>
-                <div class="toggle-group inline">
-                  <input type="radio" name="loadDown" id="load-down-heavy" value="heavy">
-                  <label class="toggle-btn" for="load-down-heavy">重い</label>
-                  <input type="radio" name="loadDown" id="load-down-medium" value="medium" checked>
-                  <label class="toggle-btn" for="load-down-medium">中</label>
-                  <input type="radio" name="loadDown" id="load-down-light" value="light">
-                  <label class="toggle-btn" for="load-down-light">軽い</label>
+                <div class="unit-select">
+                  <select id="load-down">
+                    <option value="0" selected>0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                  </select>
+                  <span class="unit-suffix">トン</span>
                 </div>
               </div>
+            </div>
+          </div>
+          <div class="form-group settings-card">
+            <label>速度MAX</label>
+            <div class="toggle-group inline-two">
+              <input type="checkbox" id="speed-up-max">
+              <label class="toggle-btn" for="speed-up-max">上り</label>
+              <input type="checkbox" id="speed-down-max">
+              <label class="toggle-btn" for="speed-down-max">下り</label>
             </div>
           </div>
         </div>
@@ -564,56 +640,105 @@
     </div>
     <div class="log-card">
       <div style="font-weight:600; margin-bottom:0.4rem;">絞り込み</div>
-      <div class="load-group">
-        <div class="load-item">
-          <div class="load-label">上り</div>
-          <div class="toggle-group inline">
-            <input type="checkbox" id="filter-up-heavy"
-                   onchange="updateLoadFilter('up','heavy', this.checked)">
-            <label class="toggle-btn" for="filter-up-heavy">重い</label>
-            <input type="checkbox" id="filter-up-medium"
-                   onchange="updateLoadFilter('up','medium', this.checked)">
-            <label class="toggle-btn" for="filter-up-medium">中</label>
-            <input type="checkbox" id="filter-up-light"
-                   onchange="updateLoadFilter('up','light', this.checked)">
-            <label class="toggle-btn" for="filter-up-light">軽い</label>
+      <div class="summary-filter-grid">
+        <div class="summary-filter-card">
+          <div class="summary-filter-title">積載重量</div>
+          <div class="load-group">
+            <div class="load-item">
+              <div class="load-label">上り</div>
+              <div class="unit-select">
+                <select id="filter-load-up" onchange="updateLoadFilter('up', this.value)">
+                  <option value="">すべて</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                </select>
+                <span class="unit-suffix">トン</span>
+              </div>
+            </div>
+            <div class="load-item">
+              <div class="load-label">下り</div>
+              <div class="unit-select">
+                <select id="filter-load-down" onchange="updateLoadFilter('down', this.value)">
+                  <option value="">すべて</option>
+                  <option value="0">0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                </select>
+                <span class="unit-suffix">トン</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="load-item">
-          <div class="load-label">下り</div>
-          <div class="toggle-group inline">
-            <input type="checkbox" id="filter-down-heavy"
-                   onchange="updateLoadFilter('down','heavy', this.checked)">
-            <label class="toggle-btn" for="filter-down-heavy">重い</label>
-            <input type="checkbox" id="filter-down-medium"
-                   onchange="updateLoadFilter('down','medium', this.checked)">
-            <label class="toggle-btn" for="filter-down-medium">中</label>
-            <input type="checkbox" id="filter-down-light"
-                   onchange="updateLoadFilter('down','light', this.checked)">
-            <label class="toggle-btn" for="filter-down-light">軽い</label>
+        <div class="summary-filter-card">
+          <div class="summary-filter-title">速度MAX</div>
+          <div class="load-group">
+            <div class="load-item">
+              <div class="load-label">上り</div>
+              <select id="filter-speed-up" onchange="updateSpeedFilter('up', this.value)">
+                <option value="">すべて</option>
+                <option value="yes">あり</option>
+                <option value="no">なし</option>
+              </select>
+            </div>
+            <div class="load-item">
+              <div class="load-label">下り</div>
+              <select id="filter-speed-down" onchange="updateSpeedFilter('down', this.value)">
+                <option value="">すべて</option>
+                <option value="yes">あり</option>
+                <option value="no">なし</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="form-row" style="margin-top:0.6rem;">
-        <div class="form-group">
-          <label for="filter-route-up">ルート（上り）</label>
-          <select id="filter-route-up" onchange="updateRouteFilter('up', this.value)">
-            <option value="">すべて</option>
-            <option value="新名神－新東名">新名神－新東名</option>
-            <option value="名神ー新東名">名神ー新東名</option>
-            <option value="名神－中央">名神－中央</option>
-            <option value="新名神－中央">新名神－中央</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="filter-route-down">ルート（下り）</label>
-          <select id="filter-route-down" onchange="updateRouteFilter('down', this.value)">
-            <option value="">すべて</option>
-            <option value="新東名ー新名神">新東名ー新名神</option>
-            <option value="新東名ー名神">新東名ー名神</option>
-            <option value="中央ー名神">中央ー名神</option>
-            <option value="中央－新名神">中央－新名神</option>
-          </select>
+        <div class="summary-filter-card">
+          <div class="summary-filter-title">ルート</div>
+          <div class="load-group">
+            <div class="load-item">
+              <div class="load-label">上り</div>
+              <select id="filter-route-up" onchange="updateRouteFilter('up', this.value)">
+                <option value="">すべて</option>
+                <option value="新名神－新東名">新名神－新東名</option>
+                <option value="名神ー新東名">名神ー新東名</option>
+                <option value="名神－中央">名神－中央</option>
+                <option value="新名神－中央">新名神－中央</option>
+              </select>
+            </div>
+            <div class="load-item">
+              <div class="load-label">下り</div>
+              <select id="filter-route-down" onchange="updateRouteFilter('down', this.value)">
+                <option value="">すべて</option>
+                <option value="新東名ー新名神">新東名ー新名神</option>
+                <option value="新東名ー名神">新東名ー名神</option>
+                <option value="中央ー名神">中央ー名神</option>
+                <option value="中央－新名神">中央－新名神</option>
+                <option value="箱根ー新東名－新名神">箱根ー新東名－新名神</option>
+                <option value="箱根ー新東名ー名神">箱根ー新東名ー名神</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
       <div style="margin-top:0.4rem; font-size:0.75rem; color:#6b7280;">
@@ -637,10 +762,8 @@
   let db;
   let allLogs = [];
   let editingId = null;
-  const summaryFilters = {
-    up: { heavy: false, medium: false, light: false },
-    down: { heavy: false, medium: false, light: false }
-  };
+  const summaryLoad = { up: '', down: '' };
+  const summarySpeed = { up: '', down: '' };
   const ROUTE_UP_OPTIONS = [
     '新名神－新東名',
     '名神ー新東名',
@@ -651,7 +774,9 @@
     '新東名ー新名神',
     '新東名ー名神',
     '中央ー名神',
-    '中央－新名神'
+    '中央－新名神',
+    '箱根ー新東名－新名神',
+    '箱根ー新東名ー名神'
   ];
   const ROUTE_ALL_OPTIONS = [...ROUTE_UP_OPTIONS, ...ROUTE_DOWN_OPTIONS];
   const ROUTE_PAIR_MAP = {
@@ -721,8 +846,9 @@
   function handleSubmit(e) {
     e.preventDefault();
     const isFull = document.getElementById('full-yes').checked;
-    const loadUpInput = document.querySelector('input[name="loadUp"]:checked');
-    const loadDownInput = document.querySelector('input[name="loadDown"]:checked');
+    const loadUp = normalizeLoadValue(document.getElementById('load-up').value);
+    const loadDown =
+      normalizeLoadValue(document.getElementById('load-down').value);
     const speedUpMax = document.getElementById('speed-up-max').checked;
     const speedDownMax = document.getElementById('speed-down-max').checked;
     const routeUpInput = document.getElementById('route-up').value;
@@ -736,8 +862,8 @@
       routeDown,
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
-      loadUp: loadUpInput ? loadUpInput.value : '',
-      loadDown: loadDownInput ? loadDownInput.value : '',
+      loadUp,
+      loadDown,
       speedUpMax,
       speedDownMax,
       isFull,
@@ -808,8 +934,8 @@
     document.getElementById('full-yes').checked = true;
     document.getElementById('route-up').value = '';
     document.getElementById('route-down').value = '';
-    document.getElementById('load-up-medium').checked = true;
-    document.getElementById('load-down-medium').checked = true;
+    document.getElementById('load-up').value = '0';
+    document.getElementById('load-down').value = '0';
     document.getElementById('speed-up-max').checked = false;
     document.getElementById('speed-down-max').checked = false;
   }
@@ -871,6 +997,8 @@
           distance > 0 && totalFuel > 0 ? distance / totalFuel : 0;
         const enriched = {
           ...log,
+          loadUp: normalizeLoadValue(log.loadUp),
+          loadDown: normalizeLoadValue(log.loadDown),
           isFull,
           distance,
           totalFuel,
@@ -954,12 +1082,8 @@
         : log.isFirst || log.distance <= 0
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
-      const loadUpText = loadLabel(log.loadUp);
-      const loadDownText = loadLabel(log.loadDown);
       const routeText = routePairLabel(getRoutePair(log));
-      const loadText = (loadUpText || loadDownText)
-        ? `上り:${loadUpText || '-'} / 下り:${loadDownText || '-'}`
-        : '';
+      const loadText = loadPairLabel(log.loadUp, log.loadDown);
       const speedText = speedMaxLabel(log);
       const memoText = [
         log.isFull ? '' : '未満タン',
@@ -1035,16 +1159,10 @@
         ? routePair.down
         : '';
     }
-    const loadUpValue = log.loadUp || 'medium';
-    const loadDownValue = log.loadDown || 'medium';
-    const loadUpInput = document.querySelector(
-      `input[name="loadUp"][value="${loadUpValue}"]`
-    );
-    const loadDownInput = document.querySelector(
-      `input[name="loadDown"][value="${loadDownValue}"]`
-    );
-    if (loadUpInput) loadUpInput.checked = true;
-    if (loadDownInput) loadDownInput.checked = true;
+    document.getElementById('load-up').value =
+      normalizeLoadValue(log.loadUp) || '0';
+    document.getElementById('load-down').value =
+      normalizeLoadValue(log.loadDown) || '0';
     document.getElementById('speed-up-max').checked = !!log.speedUpMax;
     document.getElementById('speed-down-max').checked = !!log.speedDownMax;
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
@@ -1133,18 +1251,9 @@
     renderLoadFilterResults();
   }
 
-  function updateLoadFilter(group, level, checked) {
-    if (!summaryFilters[group]) return;
-    if (checked) {
-      Object.keys(summaryFilters[group]).forEach(key => {
-        const isSelected = key === level;
-        summaryFilters[group][key] = isSelected;
-        const input = document.getElementById(`filter-${group}-${key}`);
-        if (input) input.checked = isSelected;
-      });
-    } else {
-      summaryFilters[group][level] = false;
-    }
+  function updateLoadFilter(direction, value) {
+    if (!Object.prototype.hasOwnProperty.call(summaryLoad, direction)) return;
+    summaryLoad[direction] = normalizeLoadValue(value);
     renderLoadFilterResults();
   }
 
@@ -1153,39 +1262,44 @@
     summaryRoute[direction] = normalizeRouteValue(value);
     renderLoadFilterResults();
   }
+  function updateSpeedFilter(direction, value) {
+    if (!Object.prototype.hasOwnProperty.call(summarySpeed, direction)) return;
+    summarySpeed[direction] = normalizeSpeedFilterValue(value);
+    renderLoadFilterResults();
+  }
 
   function renderLoadFilterResults() {
     const container = document.getElementById('load-filter-results');
     if (!container) return;
-    const selectedUp = Object.keys(summaryFilters.up)
-      .filter(k => summaryFilters.up[k]);
-    const selectedDown = Object.keys(summaryFilters.down)
-      .filter(k => summaryFilters.down[k]);
+    const selectedUp = summaryLoad.up;
+    const selectedDown = summaryLoad.down;
+    const selectedSpeedUp = summarySpeed.up;
+    const selectedSpeedDown = summarySpeed.down;
     const hasRouteFilter = !!summaryRoute.up || !!summaryRoute.down;
-    const hasLoadSelection = selectedUp.length > 0 || selectedDown.length > 0;
-    if (!hasLoadSelection && !hasRouteFilter) {
+    const hasLoadSelection = !!selectedUp || !!selectedDown;
+    const hasSpeedFilter = !!selectedSpeedUp || !!selectedSpeedDown;
+    if (!hasLoadSelection && !hasRouteFilter && !hasSpeedFilter) {
       container.innerHTML =
         '<p style="text-align:center; color:#888; padding:1rem 0;">' +
         '選択した条件の運行データがここに表示されます。</p>';
       return;
     }
-    if (hasLoadSelection && (selectedUp.length === 0 || selectedDown.length === 0)) {
-      container.innerHTML =
-        '<p style="text-align:center; color:#888; padding:1rem 0;">' +
-        '上り・下りの両方をチェックしてください。</p>';
-      return;
-    }
-    const useLoadFilter = selectedUp.length > 0 && selectedDown.length > 0;
     const filtered = allLogs.filter(log => {
-      const upMatch = selectedUp.includes(log.loadUp);
-      const downMatch = selectedDown.includes(log.loadDown);
+      const normalizedUp = normalizeLoadValue(log.loadUp);
+      const normalizedDown = normalizeLoadValue(log.loadDown);
+      const upMatch = !selectedUp || normalizedUp === selectedUp;
+      const downMatch = !selectedDown || normalizedDown === selectedDown;
       const routePair = getRoutePair(log);
       const routeUpMatch = !summaryRoute.up || routePair.up === summaryRoute.up;
       const routeDownMatch =
         !summaryRoute.down || routePair.down === summaryRoute.down;
       const routeMatch = !hasRouteFilter || (routeUpMatch && routeDownMatch);
-      const loadMatch = !useLoadFilter || (upMatch && downMatch);
-      return loadMatch && routeMatch;
+      const loadMatch = !hasLoadSelection || (upMatch && downMatch);
+      const speedUpMatch = !selectedSpeedUp ||
+        (selectedSpeedUp === 'yes' ? !!log.speedUpMax : !log.speedUpMax);
+      const speedDownMatch = !selectedSpeedDown ||
+        (selectedSpeedDown === 'yes' ? !!log.speedDownMax : !log.speedDownMax);
+      return loadMatch && routeMatch && speedUpMatch && speedDownMatch;
     });
     if (filtered.length === 0) {
       container.innerHTML =
@@ -1204,12 +1318,11 @@
         : log.isFirst || log.distance <= 0
         ? '(初回)'
         : '+' + formatNumber(log.distance) + ' km';
-      const loadUpText = loadLabel(log.loadUp) || '-';
-      const loadDownText = loadLabel(log.loadDown) || '-';
+      const loadText = loadPairLabel(log.loadUp, log.loadDown);
       const routeText = routePairLabel(getRoutePair(log));
       const speedText = speedMaxLabel(log);
       const footerText = [
-        `積載: 上り${loadUpText} / 下り${loadDownText}`,
+        loadText ? `積載: ${loadText}` : '',
         speedText,
         log.memo ? escapeHtml(log.memo) : ''
       ].filter(Boolean).join(' ');
@@ -1447,19 +1560,27 @@
     );
   }
   function exportCSV() {
-    if (allLogs.length === 0) {
-      showNotification('データがありません。');
+    if (!db) {
+      showNotification('データベースが開けません。');
       return;
     }
-    const blob = createCSVBlob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'truck_log.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    loadLogs(() => {
+      if (allLogs.length === 0) {
+        showNotification('データがありません。');
+        return;
+      }
+      const blob = createCSVBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'truck_log.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
   async function exportBackupCSV() {
+    if (!db) return false;
+    await new Promise(resolve => loadLogs(resolve));
     if (allLogs.length === 0) return false;
     const ok = confirm('CSVバックアップを保存しますか？保存先フォルダーを確認してください。');
     if (!ok) return false;
@@ -1551,6 +1672,8 @@
     if (normalized === '新東名-名神') return '新東名ー名神';
     if (normalized === '中央-名神') return '中央ー名神';
     if (normalized === '中央-新名神') return '中央－新名神';
+    if (normalized === '箱根-新東名-新名神') return '箱根ー新東名－新名神';
+    if (normalized === '箱根-新東名-名神') return '箱根ー新東名ー名神';
     return raw;
   }
   function routeLabel(value) {
@@ -1581,20 +1704,44 @@
     if (!upLabel && !downLabel) return '';
     return `上り:${upLabel || '-'} / 下り:${downLabel || '-'}`;
   }
+  function loadPairLabel(loadUpValue, loadDownValue) {
+    const upLabel = loadLabel(loadUpValue);
+    const downLabel = loadLabel(loadDownValue);
+    if (!upLabel && !downLabel) return '';
+    return `上り:${upLabel || '-'} / 下り:${downLabel || '-'} トン`;
+  }
   function loadLabel(value) {
-    if (value === 'heavy') return '重い';
-    if (value === 'medium') return '中';
-    if (value === 'light') return '軽い';
+    const normalized = normalizeLoadValue(value);
+    return normalized === '' ? '' : normalized;
+  }
+  function normalizeLoadValue(value) {
+    const v = toHalfWidth(value || '').trim().toLowerCase();
+    if (!v) return '';
+    const compact = v.replace(/\s+/g, '');
+    const direct = compact.match(/^(\d{1,2})(?:トン|ton|t)?$/);
+    if (direct) {
+      const n = parseInt(direct[1], 10);
+      if (n >= 0 && n <= 13) return String(n);
+      return '';
+    }
+    if (compact.includes('heavy') || compact.includes('重')) return '13';
+    if (compact.includes('medium') || compact.includes('middle') || compact.includes('中')) {
+      return '7';
+    }
+    if (compact.includes('light') || compact.includes('軽')) return '0';
+    const fallback = compact.match(/(\d{1,2})/);
+    if (fallback) {
+      const n = parseInt(fallback[1], 10);
+      if (n >= 0 && n <= 13) return String(n);
+    }
     return '';
   }
   function parseLoadValue(value) {
-    const v = toHalfWidth(value || '').trim().toLowerCase();
-    if (!v) return '';
-    if (v.includes('heavy') || v.includes('重')) return 'heavy';
-    if (v.includes('medium') || v.includes('middle') || v.includes('中')) {
-      return 'medium';
-    }
-    if (v.includes('light') || v.includes('軽')) return 'light';
+    return normalizeLoadValue(value);
+  }
+  function normalizeSpeedFilterValue(value) {
+    const v = (value || '').trim().toLowerCase();
+    if (v === 'yes' || v === 'no') return v;
     return '';
   }
   function speedMaxLabel(log) {
