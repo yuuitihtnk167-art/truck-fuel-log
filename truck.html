@@ -1303,9 +1303,7 @@
     }
     let dist = 0;
     let fuel = 0;
-    let hakoneCount = 0;
     monthly.forEach(l => {
-      if (isHakoneShindoEnabled(l)) hakoneCount += 1;
       if (l.isFull && !l.isFirst && l.distance > 0 && l.totalFuel > 0) {
         dist += l.distance;
         fuel += l.totalFuel;
@@ -1330,12 +1328,6 @@
             <div>総給油量</div>
             <div style="font-weight:600; font-size:1.1rem;">
               ${fuel.toFixed(1)} L
-            </div>
-          </div>
-          <div class="summary-box">
-            <div>箱根新道運行</div>
-            <div style="font-weight:600; font-size:1.1rem;">
-              ${hakoneCount} 件
             </div>
           </div>
         </div>
