@@ -396,6 +396,85 @@
       color: #4b5563;
       white-space: nowrap;
     }
+    .load-filter-dropdown {
+      position: relative;
+    }
+    .load-filter-summary {
+      display: block;
+      list-style: none;
+      cursor: pointer;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.55rem 0.65rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #374151;
+    }
+    .load-filter-summary::-webkit-details-marker {
+      display: none;
+    }
+    .load-filter-summary::after {
+      content: "▼";
+      float: right;
+      font-size: 0.7rem;
+      color: #6b7280;
+      margin-top: 0.15rem;
+    }
+    .load-filter-dropdown[open] .load-filter-summary {
+      border-color: var(--secondary-color);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .load-filter-dropdown[open] .load-filter-summary::after {
+      content: "▲";
+    }
+    .load-filter-menu {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.3rem;
+      margin-top: 0.35rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.5rem;
+    }
+    .load-filter-menu input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .load-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2rem;
+      padding: 0.2rem 0.3rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    .load-filter-menu input:checked + .load-filter-chip {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
+    .selected-values {
+      margin-top: 0.2rem;
+      font-size: 0.75rem;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+    .unit-note {
+      margin-bottom: 0.3rem;
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 600;
+    }
     .toggle-group.inline-two {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -427,6 +506,9 @@
       .settings-row,
       .summary-filter-grid {
         grid-template-columns: 1fr;
+      }
+      .load-filter-menu {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
     .tag-primary {
@@ -656,52 +738,23 @@
       <div class="summary-filter-grid">
         <div class="summary-filter-card">
           <div class="summary-filter-title">積載重量</div>
+          <div class="unit-note">トン</div>
           <div class="load-group">
             <div class="load-item">
               <div class="load-label">上り</div>
-              <div class="unit-select">
-                <select id="filter-load-up" onchange="updateLoadFilter('up', this.value)">
-                  <option value="">すべて</option>
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
-                  <option value="13">13</option>
-                </select>
-                <span class="unit-suffix">トン</span>
-              </div>
+              <details class="load-filter-dropdown" id="filter-load-up-dropdown">
+                <summary id="filter-load-up-summary" class="load-filter-summary">すべて</summary>
+                <div id="filter-load-up-options" class="load-filter-menu"></div>
+              </details>
+              <div id="filter-load-up-selected" class="selected-values">選択中: すべて</div>
             </div>
             <div class="load-item">
               <div class="load-label">下り</div>
-              <div class="unit-select">
-                <select id="filter-load-down" onchange="updateLoadFilter('down', this.value)">
-                  <option value="">すべて</option>
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
-                  <option value="13">13</option>
-                </select>
-                <span class="unit-suffix">トン</span>
-              </div>
+              <details class="load-filter-dropdown" id="filter-load-down-dropdown">
+                <summary id="filter-load-down-summary" class="load-filter-summary">すべて</summary>
+                <div id="filter-load-down-options" class="load-filter-menu"></div>
+              </details>
+              <div id="filter-load-down-selected" class="selected-values">選択中: すべて</div>
             </div>
           </div>
         </div>
@@ -783,7 +836,7 @@
   let db;
   let allLogs = [];
   let editingId = null;
-  const summaryLoad = { up: '', down: '' };
+  const summaryLoad = { up: [], down: [] };
   const summarySpeed = { up: '', down: '' };
   const ROUTE_UP_OPTIONS = [
     '新名神－新東名',
@@ -848,6 +901,9 @@
         (location.protocol === 'http:' || location.protocol === 'https:')) {
       navigator.serviceWorker.register('./truck-sw.js').catch(console.error);
     }
+    setupLoadFilterOptions();
+    renderLoadFilterSelectionSummary('up');
+    renderLoadFilterSelectionSummary('down');
   });
 
   function initDB() {
@@ -1288,9 +1344,10 @@
     renderLoadFilterResults();
   }
 
-  function updateLoadFilter(direction, value) {
+  function updateLoadFilter(direction) {
     if (!Object.prototype.hasOwnProperty.call(summaryLoad, direction)) return;
-    summaryLoad[direction] = normalizeLoadValue(value);
+    summaryLoad[direction] = collectCheckedLoadFilterValues(direction);
+    renderLoadFilterSelectionSummary(direction);
     renderLoadFilterResults();
   }
 
@@ -1312,13 +1369,13 @@
   function renderLoadFilterResults() {
     const container = document.getElementById('load-filter-results');
     if (!container) return;
-    const selectedUp = summaryLoad.up;
-    const selectedDown = summaryLoad.down;
+    const selectedUp = Array.isArray(summaryLoad.up) ? summaryLoad.up : [];
+    const selectedDown = Array.isArray(summaryLoad.down) ? summaryLoad.down : [];
     const selectedSpeedUp = summarySpeed.up;
     const selectedSpeedDown = summarySpeed.down;
     const selectedHakoneShindo = summaryHakoneShindo;
     const hasRouteFilter = !!summaryRoute.up || !!summaryRoute.down;
-    const hasLoadSelection = !!selectedUp || !!selectedDown;
+    const hasLoadSelection = selectedUp.length > 0 || selectedDown.length > 0;
     const hasSpeedFilter = !!selectedSpeedUp || !!selectedSpeedDown;
     const hasHakoneFilter = !!selectedHakoneShindo;
     if (!hasLoadSelection && !hasRouteFilter && !hasSpeedFilter && !hasHakoneFilter) {
@@ -1330,8 +1387,8 @@
     const filtered = allLogs.filter(log => {
       const normalizedUp = normalizeLoadValue(log.loadUp);
       const normalizedDown = normalizeLoadValue(log.loadDown);
-      const upMatch = !selectedUp || normalizedUp === selectedUp;
-      const downMatch = !selectedDown || normalizedDown === selectedDown;
+      const upMatch = selectedUp.length === 0 || selectedUp.includes(normalizedUp);
+      const downMatch = selectedDown.length === 0 || selectedDown.includes(normalizedDown);
       const routePair = getRoutePair(log);
       const routeUpMatch = !summaryRoute.up || routePair.up === summaryRoute.up;
       const routeDownMatch =
@@ -1794,6 +1851,42 @@
   }
   function parseLoadValue(value) {
     return normalizeLoadValue(value);
+  }
+  function collectCheckedLoadFilterValues(direction) {
+    const container = document.getElementById(`filter-load-${direction}-options`);
+    if (!container) return [];
+    const values = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+      .map(option => normalizeLoadValue(option.value))
+      .filter(v => v !== '');
+    return Array.from(new Set(values))
+      .sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }
+  function setupLoadFilterOptions() {
+    renderLoadFilterOptions('up');
+    renderLoadFilterOptions('down');
+  }
+  function renderLoadFilterOptions(direction) {
+    const container = document.getElementById(`filter-load-${direction}-options`);
+    if (!container || !Object.prototype.hasOwnProperty.call(summaryLoad, direction)) return;
+    const selected = Array.isArray(summaryLoad[direction]) ? summaryLoad[direction] : [];
+    let html = '';
+    for (let i = 0; i <= 13; i += 1) {
+      const value = String(i);
+      const inputId = `filter-load-${direction}-${value}`;
+      const checked = selected.includes(value) ? ' checked' : '';
+      html += `<input type="checkbox" id="${inputId}" value="${value}"${checked} onchange="updateLoadFilter('${direction}')">`;
+      html += `<label class="load-filter-chip" for="${inputId}">${value}</label>`;
+    }
+    container.innerHTML = html;
+  }
+  function renderLoadFilterSelectionSummary(direction) {
+    const target = document.getElementById(`filter-load-${direction}-selected`);
+    const summary = document.getElementById(`filter-load-${direction}-summary`);
+    if (!Object.prototype.hasOwnProperty.call(summaryLoad, direction)) return;
+    const selected = Array.isArray(summaryLoad[direction]) ? summaryLoad[direction] : [];
+    const summaryText = selected.length > 0 ? selected.join(', ') : 'すべて';
+    if (target) target.textContent = `選択中: ${summaryText}`;
+    if (summary) summary.textContent = summaryText;
   }
   function normalizeYesNoValue(value) {
     const v = (value || '').trim().toLowerCase();
