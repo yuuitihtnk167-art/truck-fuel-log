@@ -309,7 +309,7 @@
     }
     .summary-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 0.6rem;
       margin-top: 0.7rem;
     }
@@ -398,6 +398,12 @@
     }
     .toggle-group.inline-two {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .route-checkbox-row {
+      margin: 0.25rem 0 0.2rem;
+    }
+    .route-checkbox-row .toggle-group {
+      max-width: 180px;
     }
     .summary-filter-grid {
       display: grid;
@@ -515,6 +521,13 @@
               <option value="箱根ー新東名－新名神">箱根ー新東名－新名神</option>
               <option value="箱根ー新東名ー名神">箱根ー新東名ー名神</option>
             </select>
+          </div>
+        </div>
+        <div class="form-group route-checkbox-row">
+          <label>箱根新道</label>
+          <div class="toggle-group">
+            <input type="checkbox" id="hakone-shindo">
+            <label class="toggle-btn" for="hakone-shindo">使用する</label>
           </div>
         </div>
         <div class="settings-row">
@@ -738,6 +751,14 @@
                 <option value="箱根ー新東名ー名神">箱根ー新東名ー名神</option>
               </select>
             </div>
+            <div class="load-item">
+              <div class="load-label">箱根新道</div>
+              <select id="filter-hakone-shindo" onchange="updateHakoneShindoFilter(this.value)">
+                <option value="">すべて</option>
+                <option value="yes">あり</option>
+                <option value="no">なし</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -789,9 +810,12 @@
     '新東名ー新名神': '新名神－新東名',
     '新東名ー名神': '名神ー新東名',
     '中央ー名神': '名神－中央',
-    '中央－新名神': '新名神－中央'
+    '中央－新名神': '新名神－中央',
+    '箱根ー新東名－新名神': '新名神－新東名',
+    '箱根ー新東名ー名神': '名神ー新東名'
   };
   const summaryRoute = { up: '', down: '' };
+  let summaryHakoneShindo = '';
 
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('date').valueAsDate = new Date();
@@ -853,6 +877,7 @@
     const speedDownMax = document.getElementById('speed-down-max').checked;
     const routeUpInput = document.getElementById('route-up').value;
     const routeDownInput = document.getElementById('route-down').value;
+    const hakoneShindoInput = document.getElementById('hakone-shindo').checked;
     const routeUp = normalizeRouteValue(routeUpInput);
     const routeDown = normalizeRouteValue(routeDownInput);
     const data = {
@@ -860,6 +885,7 @@
       odometer: parseFloat(document.getElementById('odometer').value),
       routeUp,
       routeDown,
+      hakoneShindo: hakoneShindoInput || isHakoneRouteDownValue(routeDown),
       fuelA: parseFloat(document.getElementById('fuelA').value) || 0,
       fuelB: parseFloat(document.getElementById('fuelB').value) || 0,
       loadUp,
@@ -934,6 +960,7 @@
     document.getElementById('full-yes').checked = true;
     document.getElementById('route-up').value = '';
     document.getElementById('route-down').value = '';
+    document.getElementById('hakone-shindo').checked = false;
     document.getElementById('load-up').value = '0';
     document.getElementById('load-down').value = '0';
     document.getElementById('speed-up-max').checked = false;
@@ -1090,6 +1117,7 @@
         log.isAggregated ? '⚠️ 合算あり' : '',
         loadText,
         speedText,
+        hakoneShindoLabel(log),
         log.memo ? escapeHtml(log.memo) : ''
       ].filter(Boolean).join(' ');
       container.insertAdjacentHTML('beforeend', `
@@ -1165,6 +1193,7 @@
       normalizeLoadValue(log.loadDown) || '0';
     document.getElementById('speed-up-max').checked = !!log.speedUpMax;
     document.getElementById('speed-down-max').checked = !!log.speedDownMax;
+    document.getElementById('hakone-shindo').checked = isHakoneShindoEnabled(log);
     document.getElementById('submitButton').textContent = '✏️ 記録を更新する';
     switchTab('input');
     updatePreview();
@@ -1218,7 +1247,9 @@
     }
     let dist = 0;
     let fuel = 0;
+    let hakoneCount = 0;
     monthly.forEach(l => {
+      if (isHakoneShindoEnabled(l)) hakoneCount += 1;
       if (l.isFull && !l.isFirst && l.distance > 0 && l.totalFuel > 0) {
         dist += l.distance;
         fuel += l.totalFuel;
@@ -1245,6 +1276,12 @@
               ${fuel.toFixed(1)} L
             </div>
           </div>
+          <div class="summary-box">
+            <div>箱根新道運行</div>
+            <div style="font-weight:600; font-size:1.1rem;">
+              ${hakoneCount} 件
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -1262,6 +1299,10 @@
     summaryRoute[direction] = normalizeRouteValue(value);
     renderLoadFilterResults();
   }
+  function updateHakoneShindoFilter(value) {
+    summaryHakoneShindo = normalizeYesNoValue(value);
+    renderLoadFilterResults();
+  }
   function updateSpeedFilter(direction, value) {
     if (!Object.prototype.hasOwnProperty.call(summarySpeed, direction)) return;
     summarySpeed[direction] = normalizeSpeedFilterValue(value);
@@ -1275,10 +1316,12 @@
     const selectedDown = summaryLoad.down;
     const selectedSpeedUp = summarySpeed.up;
     const selectedSpeedDown = summarySpeed.down;
+    const selectedHakoneShindo = summaryHakoneShindo;
     const hasRouteFilter = !!summaryRoute.up || !!summaryRoute.down;
     const hasLoadSelection = !!selectedUp || !!selectedDown;
     const hasSpeedFilter = !!selectedSpeedUp || !!selectedSpeedDown;
-    if (!hasLoadSelection && !hasRouteFilter && !hasSpeedFilter) {
+    const hasHakoneFilter = !!selectedHakoneShindo;
+    if (!hasLoadSelection && !hasRouteFilter && !hasSpeedFilter && !hasHakoneFilter) {
       container.innerHTML =
         '<p style="text-align:center; color:#888; padding:1rem 0;">' +
         '選択した条件の運行データがここに表示されます。</p>';
@@ -1299,7 +1342,10 @@
         (selectedSpeedUp === 'yes' ? !!log.speedUpMax : !log.speedUpMax);
       const speedDownMatch = !selectedSpeedDown ||
         (selectedSpeedDown === 'yes' ? !!log.speedDownMax : !log.speedDownMax);
-      return loadMatch && routeMatch && speedUpMatch && speedDownMatch;
+      const hakoneEnabled = isHakoneShindoEnabled(log);
+      const hakoneMatch = !hasHakoneFilter ||
+        (selectedHakoneShindo === 'yes' ? hakoneEnabled : !hakoneEnabled);
+      return loadMatch && routeMatch && speedUpMatch && speedDownMatch && hakoneMatch;
     });
     if (filtered.length === 0) {
       container.innerHTML =
@@ -1324,6 +1370,7 @@
       const footerText = [
         loadText ? `積載: ${loadText}` : '',
         speedText,
+        hakoneShindoLabel(log),
         log.memo ? escapeHtml(log.memo) : ''
       ].filter(Boolean).join(' ');
       return `
@@ -1417,6 +1464,7 @@
     let loadDownIdx = -1;
     let speedUpIdx = -1;
     let speedDownIdx = -1;
+    let hakoneShindoIdx = -1;
 
     header.forEach((name, i) => {
       if (/(日付|date)/i.test(name)) dateIdx = i;
@@ -1433,6 +1481,9 @@
       if (/(下り積載|下り重量|下り荷)/i.test(name)) loadDownIdx = i;
       if (/(上り速度|max上り|上りmax|上り速度max|上り速度MAX)/i.test(name)) speedUpIdx = i;
       if (/(下り速度|max下り|下りmax|下り速度max|下り速度MAX)/i.test(name)) speedDownIdx = i;
+      if (/(箱根新道|箱根.*新道|hakone.*shindo|hakone_shindo)/i.test(name)) {
+        hakoneShindoIdx = i;
+      }
       if (loadUpIdx < 0 && /上り/i.test(name) && !/(速度|max|ルート|route)/i.test(name)) {
         loadUpIdx = i;
       }
@@ -1463,6 +1514,7 @@
       const loadDownStr = loadDownIdx >= 0 ? cols[loadDownIdx] : '';
       const speedUpStr = speedUpIdx >= 0 ? cols[speedUpIdx] : '';
       const speedDownStr = speedDownIdx >= 0 ? cols[speedDownIdx] : '';
+      const hakoneShindoStr = hakoneShindoIdx >= 0 ? cols[hakoneShindoIdx] : '';
       const odo = parseFloat(odoStr);
       const csvDistance = parseFloat(distStr);
       const fuelA = parseFloat(fuelAStr);
@@ -1482,6 +1534,8 @@
       const loadDown = parseLoadValue(loadDownStr);
       const speedUpMax = parseBoolCell(speedUpStr);
       const speedDownMax = parseBoolCell(speedDownStr);
+      const hakoneShindo = parseBoolCell(hakoneShindoStr);
+      const finalHakoneShindo = hakoneShindo || isHakoneRouteDownValue(finalRouteDown);
       if (!date || isNaN(odo) || isNaN(fuelA)) continue;
       const record = {
         date,
@@ -1490,6 +1544,7 @@
         fuelB,
         memo: memoIdx >= 0 ? cols[memoIdx] : `CSV行${i + 1}`,
         csvDistance: Number.isFinite(csvDistance) ? csvDistance : undefined,
+        hakoneShindo: finalHakoneShindo,
         isFull: true,
         timestamp: Date.now()
       };
@@ -1530,7 +1585,7 @@
 
   function buildCSVText() {
     let csv =
-      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上りルート,下りルート,上り積載,下り積載,上り速度MAX,下り速度MAX,メモ\n';
+      '日付,積算距離,走行距離,給油A,給油B,合計燃料,燃費,上りルート,下りルート,上り積載,下り積載,上り速度MAX,下り速度MAX,箱根新道,メモ\n';
     allLogs.forEach(l => {
       const routePair = getRoutePair(l);
       csv += [
@@ -1547,6 +1602,7 @@
         loadLabel(l.loadDown),
         l.speedUpMax ? '1' : '',
         l.speedDownMax ? '1' : '',
+        isHakoneShindoEnabled(l) ? '1' : '',
         `"${(l.memo || '').replace(/"/g, '""')}"`
       ].join(',') + '\n';
     });
@@ -1739,10 +1795,26 @@
   function parseLoadValue(value) {
     return normalizeLoadValue(value);
   }
-  function normalizeSpeedFilterValue(value) {
+  function normalizeYesNoValue(value) {
     const v = (value || '').trim().toLowerCase();
     if (v === 'yes' || v === 'no') return v;
     return '';
+  }
+  function normalizeSpeedFilterValue(value) {
+    return normalizeYesNoValue(value);
+  }
+  function isHakoneRouteDownValue(value) {
+    const normalized = normalizeRouteValue(value);
+    return normalized === '箱根ー新東名－新名神' ||
+      normalized === '箱根ー新東名ー名神';
+  }
+  function isHakoneShindoEnabled(log) {
+    if (!log) return false;
+    return !!log.hakoneShindo || isHakoneRouteDownValue(getRoutePair(log).down);
+  }
+  function hakoneShindoLabel(log) {
+    if (!isHakoneShindoEnabled(log)) return '';
+    return '<span class="tag-primary">箱根新道</span>';
   }
   function speedMaxLabel(log) {
     const parts = [];
