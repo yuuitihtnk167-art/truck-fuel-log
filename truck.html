@@ -501,6 +501,24 @@
       color: #374151;
       margin-bottom: 0.35rem;
     }
+    .summary-filter-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .summary-filter-header-title {
+      font-weight: 600;
+    }
+    .btn-filter-reset {
+      padding: 0.4rem 0.65rem;
+      background: #6b7280;
+      color: #fff;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
     @media (max-width: 640px) {
       .form-row,
       .settings-row,
@@ -734,7 +752,12 @@
       </p>
     </div>
     <div class="log-card">
-      <div style="font-weight:600; margin-bottom:0.4rem;">絞り込み</div>
+      <div class="summary-filter-header">
+        <div class="summary-filter-header-title">絞り込み</div>
+        <button type="button" class="btn btn-filter-reset" onclick="clearSummaryFilters()">
+          すべて解除
+        </button>
+      </div>
       <div class="summary-filter-grid">
         <div class="summary-filter-card">
           <div class="summary-filter-title">積載重量</div>
@@ -1355,6 +1378,36 @@
   function updateSpeedFilter(direction, value) {
     if (!Object.prototype.hasOwnProperty.call(summarySpeed, direction)) return;
     summarySpeed[direction] = normalizeSpeedFilterValue(value);
+    renderLoadFilterResults();
+  }
+  function clearSummaryFilters() {
+    summaryLoad.up = [];
+    summaryLoad.down = [];
+    summarySpeed.up = '';
+    summarySpeed.down = '';
+    summaryRoute.up = '';
+    summaryRoute.down = '';
+    summaryHakoneShindo = '';
+
+    const speedUp = document.getElementById('filter-speed-up');
+    const speedDown = document.getElementById('filter-speed-down');
+    const routeUp = document.getElementById('filter-route-up');
+    const routeDown = document.getElementById('filter-route-down');
+    const hakone = document.getElementById('filter-hakone-shindo');
+    const upDropdown = document.getElementById('filter-load-up-dropdown');
+    const downDropdown = document.getElementById('filter-load-down-dropdown');
+
+    if (speedUp) speedUp.value = '';
+    if (speedDown) speedDown.value = '';
+    if (routeUp) routeUp.value = '';
+    if (routeDown) routeDown.value = '';
+    if (hakone) hakone.value = '';
+    if (upDropdown) upDropdown.open = false;
+    if (downDropdown) downDropdown.open = false;
+
+    setupLoadFilterOptions();
+    renderLoadFilterSelectionSummary('up');
+    renderLoadFilterSelectionSummary('down');
     renderLoadFilterResults();
   }
 
